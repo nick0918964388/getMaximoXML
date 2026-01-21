@@ -59,50 +59,65 @@ function escapeSql(value: string): string {
 }
 
 /**
- * Generate ALTER TABLE statement for adding a column
+ * Generate INSERT statement for MAXATTRIBUTECFG table
+ * This is the proper Maximo way - insert into CFG table, then run ConfigDB
  */
-export function generateAlterTableSQL(
+export function generateMaxAttributeCfgSQL(
   field: ProcessedField,
-  mboName: string
+  mboName: string,
+  attributeNo?: number
 ): string {
-  // Skip non-persistent fields
-  if (!field.persistent) {
+  // Skip fields with relationship (they belong to other objects)
+  if (field.relationship && !field.objectName) {
     return '';
   }
 
-  // Skip fields with relationship (they belong to other tables)
-  if (field.relationship) {
-    return '';
-  }
+  const objectName = field.objectName || mboName;
+  const attributeName = field.fieldName.toUpperCase();
+  const attrNo = attributeNo || Math.floor(Math.random() * 9000) + 1000;
+  const length = field.length || getDefaultLength(field.maxType);
 
-  const tableName = field.objectName || mboName;
-  const columnName = field.fieldName.toUpperCase();
-  const dataType = getOracleDataType(field.maxType, field.length, field.scale);
+  const columns = [
+    'OBJECTNAME',
+    'ATTRIBUTENAME',
+    'ATTRIBUTENO',
+    'ALIAS',
+    'MAXTYPE',
+    'LENGTH',
+    'SCALE',
+    'TITLE',
+    'REMARKS',
+    'REQUIRED',
+    'PERSISTENT',
+    'USERDEFINED',
+    'DEFAULTVALUE',
+    'CHANGED',
+  ];
 
-  let sql = `ALTER TABLE ${tableName} ADD ${columnName} ${dataType}`;
+  const values = [
+    `'${objectName}'`,                                    // OBJECTNAME
+    `'${attributeName}'`,                                 // ATTRIBUTENAME
+    `${attrNo}`,                                          // ATTRIBUTENO
+    `'${attributeName}'`,                                 // ALIAS
+    `'${field.maxType}'`,                                 // MAXTYPE
+    `${length}`,                                          // LENGTH
+    `${field.scale}`,                                     // SCALE
+    `'${escapeSql(field.title || field.label)}'`,         // TITLE
+    `'${escapeSql(field.label)}'`,                        // REMARKS
+    `${field.dbRequired ? 1 : 0}`,                        // REQUIRED
+    `${field.persistent ? 1 : 0}`,                        // PERSISTENT
+    `1`,                                                  // USERDEFINED (always 1 for custom fields)
+    field.defaultValue ? `'${escapeSql(field.defaultValue)}'` : 'NULL', // DEFAULTVALUE
+    `'I'`,                                                // CHANGED ('I' = Insert new attribute)
+  ];
 
-  // Add DEFAULT clause if defaultValue is provided
-  if (field.defaultValue) {
-    // Check if it's a numeric default
-    if (['INTEGER', 'SMALLINT', 'DECIMAL', 'FLOAT', 'YORN'].includes(field.maxType)) {
-      sql += ` DEFAULT ${field.defaultValue}`;
-    } else {
-      sql += ` DEFAULT '${escapeSql(field.defaultValue)}'`;
-    }
-  }
-
-  // Add NOT NULL if required
-  if (field.dbRequired) {
-    sql += ' NOT NULL';
-  }
-
-  sql += ';';
-
-  return sql;
+  return `INSERT INTO MAXATTRIBUTECFG (${columns.join(', ')})
+VALUES (${values.join(', ')});`;
 }
 
 /**
- * Generate INSERT statement for MAXATTRIBUTE table
+ * Generate INSERT statement for MAXATTRIBUTE table (legacy - for reference only)
+ * @deprecated Use generateMaxAttributeCfgSQL instead for proper Maximo configuration workflow
  */
 export function generateMaxAttributeSQL(
   field: ProcessedField,
@@ -183,6 +198,7 @@ function getDefaultLength(maxType: MaximoDataType): number {
 
 /**
  * Generate all SQL statements for a list of fields
+ * Uses MAXATTRIBUTECFG for proper Maximo configuration workflow
  */
 export function generateAllSQL(
   fields: ProcessedField[],
@@ -191,53 +207,35 @@ export function generateAllSQL(
   const lines: string[] = [];
 
   lines.push('-- =============================================');
-  lines.push('-- Database Configuration SQL');
+  lines.push('-- Maximo Database Configuration SQL');
   lines.push(`-- Generated for MBO: ${mboName}`);
   lines.push(`-- Generated at: ${new Date().toISOString()}`);
   lines.push('-- =============================================');
+  lines.push('--');
+  lines.push('-- 使用方式:');
+  lines.push('-- 1. 執行此 SQL 將欄位定義插入 MAXATTRIBUTECFG');
+  lines.push('-- 2. 登入 Maximo 執行「資料庫配置」應用程式');
+  lines.push('-- 3. 點選「套用配置變更」讓 Maximo 建立實際的資料庫欄位');
+  lines.push('-- =============================================');
   lines.push('');
 
-  // Filter fields that need ALTER TABLE (persistent and belong to main object)
-  const alterTableFields = fields.filter(f =>
+  // Filter fields that need configuration (persistent and belong to main object)
+  const cfgFields = fields.filter(f =>
     f.persistent &&
     !f.relationship &&
     f.fieldName.toUpperCase().startsWith('ZZ_') // Only custom fields
   );
 
-  if (alterTableFields.length > 0) {
+  if (cfgFields.length > 0) {
     lines.push('-- =============================================');
-    lines.push('-- ALTER TABLE statements');
-    lines.push('-- Add columns to the database table');
-    lines.push('-- =============================================');
-    lines.push('');
-
-    alterTableFields.forEach(field => {
-      const sql = generateAlterTableSQL(field, mboName);
-      if (sql) {
-        lines.push(sql);
-      }
-    });
-
-    lines.push('');
-  }
-
-  // Generate MAXATTRIBUTE INSERT statements
-  const maxAttrFields = fields.filter(f =>
-    f.persistent &&
-    !f.relationship &&
-    f.fieldName.toUpperCase().startsWith('ZZ_')
-  );
-
-  if (maxAttrFields.length > 0) {
-    lines.push('-- =============================================');
-    lines.push('-- MAXATTRIBUTE INSERT statements');
-    lines.push('-- Register attributes in Maximo metadata');
+    lines.push('-- MAXATTRIBUTECFG INSERT statements');
+    lines.push('-- 新增自訂欄位到配置表');
     lines.push('-- =============================================');
     lines.push('');
 
     let attributeNo = 1000;
-    maxAttrFields.forEach(field => {
-      const sql = generateMaxAttributeSQL(field, mboName, attributeNo++);
+    cfgFields.forEach(field => {
+      const sql = generateMaxAttributeCfgSQL(field, mboName, attributeNo++);
       if (sql) {
         lines.push(sql);
         lines.push('');
@@ -249,6 +247,12 @@ export function generateAllSQL(
   lines.push('-- COMMIT');
   lines.push('-- =============================================');
   lines.push('COMMIT;');
+  lines.push('');
+  lines.push('-- =============================================');
+  lines.push('-- 下一步: 執行 Maximo 資料庫配置');
+  lines.push('-- 系統管理 > 配置 > 資料庫配置');
+  lines.push('-- 選擇物件後點選「套用配置變更」');
+  lines.push('-- =============================================');
 
   return lines.join('\n');
 }

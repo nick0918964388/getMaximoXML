@@ -158,29 +158,32 @@ The tool generates a complete Maximo presentation XML file including:
 
 ### Database Configuration SQL (with `--sql` option)
 
-When `--sql` is specified, generates SQL file containing:
+When `--sql` is specified, generates SQL file containing **MAXATTRIBUTECFG INSERT statements** for proper Maximo configuration workflow.
 
-- **ALTER TABLE statements**: Add custom columns (ZZ_* fields) to database tables
-- **MAXATTRIBUTE INSERT statements**: Register attributes in Maximo metadata
+**使用方式:**
+1. 執行 SQL 將欄位定義插入 MAXATTRIBUTECFG
+2. 登入 Maximo 執行「資料庫配置」應用程式
+3. 點選「套用配置變更」讓 Maximo 建立實際的資料庫欄位
 
 Example SQL output:
 ```sql
 -- =============================================
--- Database Configuration SQL
+-- Maximo Database Configuration SQL
 -- Generated for MBO: SR
 -- =============================================
 
--- ALTER TABLE statements
-ALTER TABLE SR ADD ZZ_CUSTOMFIELD VARCHAR2(30);
-ALTER TABLE SR ADD ZZ_STATUS VARCHAR2(20) DEFAULT 'ACTIVE';
-ALTER TABLE SR ADD ZZ_REQUIRED VARCHAR2(50) NOT NULL;
-
--- MAXATTRIBUTE INSERT statements
-INSERT INTO MAXATTRIBUTE (OBJECTNAME, ATTRIBUTENAME, ATTRIBUTENO, ALIAS, MAXTYPE, LENGTH, SCALE, TITLE, REMARKS, REQUIRED, PERSISTENT, USERDEFINED, DEFAULTVALUE)
-VALUES ('SR', 'ZZ_CUSTOMFIELD', 1000, 'ZZ_CUSTOMFIELD', 'ALN', 30, 0, '自訂欄位', '自訂欄位', 0, 1, 1, NULL);
+-- MAXATTRIBUTECFG INSERT statements
+INSERT INTO MAXATTRIBUTECFG (OBJECTNAME, ATTRIBUTENAME, ATTRIBUTENO, ALIAS, MAXTYPE, LENGTH, SCALE, TITLE, REMARKS, REQUIRED, PERSISTENT, USERDEFINED, DEFAULTVALUE, CHANGED)
+VALUES ('SR', 'ZZ_CUSTOMFIELD', 1000, 'ZZ_CUSTOMFIELD', 'ALN', 30, 0, '自訂欄位', '自訂欄位', 0, 1, 1, NULL, 'I');
 
 COMMIT;
+
+-- 下一步: 執行 Maximo 資料庫配置
+-- 系統管理 > 配置 > 資料庫配置
+-- 選擇物件後點選「套用配置變更」
 ```
+
+**Note:** The `CHANGED='I'` flag indicates this is a new attribute to be inserted. Maximo's ConfigDB process will handle the actual ALTER TABLE operations.
 
 ## Implementation
 
