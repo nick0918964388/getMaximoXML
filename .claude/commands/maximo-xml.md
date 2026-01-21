@@ -24,7 +24,7 @@ Generate complete Maximo presentation XML and database configuration SQL from SA
 
 The SA document should be an Excel file with a sheet named `欄位定義` or `Fields` containing these columns:
 
-### UI Configuration Columns (A-L, Green Header)
+### UI Configuration Columns (A-M, Green Header)
 
 | Column | Description | Example | Dropdown |
 |--------|-------------|---------|----------|
@@ -40,6 +40,7 @@ The SA document should be an Excel file with a sheet named `欄位定義` or `Fi
 | 可排序 | Sortable | `TRUE`, `FALSE` | Yes |
 | 區域 | Area | `header`, `detail`, `list` | Yes |
 | Tab名稱 | Tab name | `main`, `開工車登錄` | No |
+| 欄 | Column number for multi-column layout | `1`, `2`, `3` | No |
 
 ### 關聯 (Relationship) Column Usage
 
@@ -55,18 +56,58 @@ The `關聯` column serves different purposes based on the `區域`:
 - Header field from related object: `關聯=ZZ_VEHICLE_DYNAMIC` → `dataattribute="ZZ_VEHICLE_DYNAMIC.STARTDATE"`
 - Detail table column: `關聯=ZZ_JOB_NUMBER` → columns grouped into `<table relationship="ZZ_JOB_NUMBER">`
 
-### DB Configuration Columns (M-T, Blue Header)
+### 欄 (Column) - Multi-Column Layout
 
-| Column | Description | Example | Dropdown |
-|--------|-------------|---------|----------|
-| 資料類型 | Maximo data type | `ALN`, `INTEGER`, `DATE` | Yes |
-| 長度 | Field length | `30`, `100` | No |
-| 小數位數 | Decimal scale | `0`, `2` | No |
-| DB必填 | Database required | `TRUE`, `FALSE` | Yes |
-| 預設值 | Default value | `ACTIVE`, `0` | No |
-| 持久化 | Persistent field | `TRUE`, `FALSE` | Yes |
-| 欄位標題 | Field title | `車號`, `狀態` | No |
-| 所屬物件 | Object name | `SR`, `CHILDOBJ` | No |
+The `欄` column controls how header fields are arranged in the form layout:
+
+| 值 | 說明 |
+|----|------|
+| 空白或 0 | 自動分欄 (每 4 個欄位一欄) |
+| 1, 2, 3... | 手動指定欄位位置 |
+
+**混合模式說明:**
+- 如果任何欄位有指定 `欄` 值 (>0)，則所有欄位都會依照 `欄` 值分組
+- 未指定 `欄` 值的欄位會被歸類到第 1 欄
+- 如果所有欄位都沒有指定 `欄` 值，則自動每 4 個欄位分成一欄
+
+**範例:**
+```
+欄位 A: 欄=1  ─┐
+欄位 B: 欄=1  ─┼─> sectioncol 1
+欄位 C: 欄=2  ─┐
+欄位 D: 欄=2  ─┼─> sectioncol 2
+```
+
+產出 XML:
+```xml
+<sectionrow>
+  <sectioncol>
+    <section>
+      <textbox dataattribute="A"/>
+      <textbox dataattribute="B"/>
+    </section>
+  </sectioncol>
+  <sectioncol>
+    <section>
+      <textbox dataattribute="C"/>
+      <textbox dataattribute="D"/>
+    </section>
+  </sectioncol>
+</sectionrow>
+```
+
+### DB Configuration Columns (N-U, Blue Header)
+
+| Column (Excel) | Description | Example | Dropdown |
+|----------------|-------------|---------|----------|
+| N - 資料類型 | Maximo data type | `ALN`, `INTEGER`, `DATE` | Yes |
+| O - 長度 | Field length | `30`, `100` | No |
+| P - 小數位數 | Decimal scale | `0`, `2` | No |
+| Q - DB必填 | Database required | `TRUE`, `FALSE` | Yes |
+| R - 預設值 | Default value | `ACTIVE`, `0` | No |
+| S - 持久化 | Persistent field | `TRUE`, `FALSE` | Yes |
+| T - 欄位標題 | Field title | `車號`, `狀態` | No |
+| U - 所屬物件 | Object name | `SR`, `CHILDOBJ` | No |
 
 ### Area Types
 
@@ -190,10 +231,11 @@ if (generateSql) {
 ## Excel Template
 
 Use the provided template at `src/templates/sa-template.xlsx` which includes:
-- 20 columns total: 12 UI columns (A-L) + 8 DB columns (M-T)
+- 21 columns total: 13 UI columns (A-M) + 8 DB columns (N-U)
 - Dropdown menus for: 型別, 輸入模式, 可篩選, 可排序, 區域, 資料類型, DB必填, 持久化
 - Color-coded sections (green for UI, blue for DB)
 - Sample data demonstrating header, detail, and list field definitions
+- Multi-column layout examples using the 欄 column
 
 To create a fresh template programmatically:
 ```typescript

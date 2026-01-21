@@ -72,6 +72,8 @@ export interface SAFieldDefinition {
   area: FieldArea;
   /** Tab名稱 */
   tabName: string;
+  /** 欄 (column number for multi-column layout, optional) */
+  column: number;
 
   // ===== Database Configuration Fields =====
   /** Maximo 資料類型 (ALN/INTEGER/DECIMAL/DATE/YORN etc.) */

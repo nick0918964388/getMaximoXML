@@ -26,6 +26,7 @@ const COLUMN_MAPPINGS: Record<string, keyof SAFieldDefinition> = {
   '可排序': 'sortable',
   '區域': 'area',
   'Tab名稱': 'tabName',
+  '欄': 'column',
   // DB Configuration fields
   '資料類型': 'maxType',
   '長度': 'length',
@@ -128,6 +129,7 @@ export function parseExcelRow(row: Record<string, unknown>): SAFieldDefinition {
   const sortable = parseBoolean(row['可排序']);
   const areaStr = parseString(row['區域']).toLowerCase() as FieldArea;
   const tabName = parseString(row['Tab名稱']);
+  const column = parseNumber(row['欄'], 0);
 
   // DB Configuration fields
   const maxTypeStr = parseString(row['資料類型']).toUpperCase() as MaximoDataType;
@@ -174,6 +176,7 @@ export function parseExcelRow(row: Record<string, unknown>): SAFieldDefinition {
     sortable,
     area,
     tabName,
+    column,
     // DB fields
     maxType,
     length,

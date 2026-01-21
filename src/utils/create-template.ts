@@ -30,7 +30,7 @@ export async function createSATemplate(outputPath: string): Promise<void> {
   // Define headers - UI fields (green) + DB fields (blue)
   // 「明細表格」欄位已移除，改用「關聯」欄位來指定 detail 區域的 table relationship
   const headers = [
-    // UI Configuration (A-L)
+    // UI Configuration (A-M)
     '欄位名稱',    // A
     '標籤',        // B
     '型別',        // C - dropdown
@@ -43,23 +43,24 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     '可排序',      // J - dropdown
     '區域',        // K - dropdown
     'Tab名稱',     // L
-    // DB Configuration (M-T)
-    '資料類型',    // M - dropdown (maxType)
-    '長度',        // N (length)
-    '小數位數',    // O (scale)
-    'DB必填',      // P - dropdown (dbRequired)
-    '預設值',      // Q (defaultValue)
-    '持久化',      // R - dropdown (persistent)
-    '欄位標題',    // S (title)
-    '所屬物件',    // T (objectName)
+    '欄',          // M - 多欄佈局的欄位編號 (選填, 預設自動分欄)
+    // DB Configuration (N-U)
+    '資料類型',    // N - dropdown (maxType)
+    '長度',        // O (length)
+    '小數位數',    // P (scale)
+    'DB必填',      // Q - dropdown (dbRequired)
+    '預設值',      // R (defaultValue)
+    '持久化',      // S - dropdown (persistent)
+    '欄位標題',    // T (title)
+    '所屬物件',    // U (objectName)
   ];
 
   // Add header row with styling
   const headerRow = fieldSheet.addRow(headers);
   headerRow.font = { bold: true };
 
-  // Style UI columns (A-L) with green background
-  for (let col = 1; col <= 12; col++) {
+  // Style UI columns (A-M) with green background
+  for (let col = 1; col <= 13; col++) {
     headerRow.getCell(col).fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -67,8 +68,8 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     };
   }
 
-  // Style DB columns (M-T) with blue background
-  for (let col = 13; col <= 20; col++) {
+  // Style DB columns (N-U) with blue background
+  for (let col = 14; col <= 21; col++) {
     headerRow.getCell(col).fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -78,7 +79,7 @@ export async function createSATemplate(outputPath: string): Promise<void> {
 
   // Set column widths
   fieldSheet.columns = [
-    // UI columns (A-L)
+    // UI columns (A-M)
     { width: 25 }, // A - 欄位名稱
     { width: 15 }, // B - 標籤
     { width: 18 }, // C - 型別
@@ -91,53 +92,55 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     { width: 10 }, // J - 可排序
     { width: 10 }, // K - 區域
     { width: 15 }, // L - Tab名稱
-    // DB columns (M-T)
-    { width: 12 }, // M - 資料類型
-    { width: 8 },  // N - 長度
-    { width: 10 }, // O - 小數位數
-    { width: 10 }, // P - DB必填
-    { width: 15 }, // Q - 預設值
-    { width: 10 }, // R - 持久化
-    { width: 15 }, // S - 欄位標題
-    { width: 15 }, // T - 所屬物件
+    { width: 6 },  // M - 欄 (多欄佈局)
+    // DB columns (N-U)
+    { width: 12 }, // N - 資料類型
+    { width: 8 },  // O - 長度
+    { width: 10 }, // P - 小數位數
+    { width: 10 }, // Q - DB必填
+    { width: 15 }, // R - 預設值
+    { width: 10 }, // S - 持久化
+    { width: 15 }, // T - 欄位標題
+    { width: 15 }, // U - 所屬物件
   ];
 
   // Sample data with DB configuration
-  // [UI fields: 欄位名稱, 標籤, 型別, 輸入模式, Lookup, 關聯, 連結應用, 寬度, 可篩選, 可排序, 區域, Tab名稱]
+  // [UI fields: 欄位名稱, 標籤, 型別, 輸入模式, Lookup, 關聯, 連結應用, 寬度, 可篩選, 可排序, 區域, Tab名稱, 欄]
   // [DB fields: 資料類型, 長度, 小數位數, DB必填, 預設值, 持久化, 欄位標題, 所屬物件]
   // 注意: detail 區域的欄位使用「關聯」欄位來指定 table relationship
+  // 注意: 「欄」欄位用於多欄佈局，空白或0表示自動分欄，1/2/3...表示手動指定欄位
   const sampleData = [
     // List fields (通常不需要 DB 設定，因為是顯示已有欄位)
-    ['zz_eq24', '車號', 'tablecol', '', 'asset', '', 'zz_asset', '', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', ''],
-    ['status', '狀態', 'tablecol', '', '', '', '', '45', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', ''],
-    ['zz_imnum', '進廠申請編號', 'tablecol', '', '', '', '', '', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', ''],
+    ['zz_eq24', '車號', 'tablecol', '', 'asset', '', 'zz_asset', '', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', '', ''],
+    ['status', '狀態', 'tablecol', '', '', '', '', '45', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', '', ''],
+    ['zz_imnum', '進廠申請編號', 'tablecol', '', '', '', '', '', 'TRUE', 'TRUE', 'list', '', '', '', '', '', '', '', '', '', ''],
 
-    // Header fields - main tab (包含 DB 設定範例)
-    ['ZZ_EQ24', '車號', 'textbox', 'required', 'ASSET', '', 'ZZ_ASSET', '12', '', '', 'header', 'main', 'ALN', '30', '', 'TRUE', '', 'TRUE', '車號', ''],
-    ['ZZ_TYPE', '檢修級別', 'textbox', 'required', 'worktype', '', '', '12', '', '', 'header', 'main', 'ALN', '20', '', 'TRUE', '', 'TRUE', '檢修級別', ''],
-    ['asset.description', '車輛說明', 'textbox', 'readonly', '', '', '', '30', '', '', 'header', 'main', '', '', '', '', '', 'FALSE', '', ''],
-    ['ZZ_IMNUM', '進廠申請編號', 'textbox', 'readonly', '', '', '', '12', '', '', 'header', 'main', 'ALN', '20', '', '', '', 'TRUE', '進廠申請編號', ''],
+    // Header fields - main tab (包含 DB 設定範例，使用「欄」指定多欄佈局)
+    ['ZZ_EQ24', '車號', 'textbox', 'required', 'ASSET', '', 'ZZ_ASSET', '12', '', '', 'header', 'main', '1', 'ALN', '30', '', 'TRUE', '', 'TRUE', '車號', ''],
+    ['ZZ_TYPE', '檢修級別', 'textbox', 'required', 'worktype', '', '', '12', '', '', 'header', 'main', '1', 'ALN', '20', '', 'TRUE', '', 'TRUE', '檢修級別', ''],
+    ['asset.description', '車輛說明', 'textbox', 'readonly', '', '', '', '30', '', '', 'header', 'main', '2', '', '', '', '', '', 'FALSE', '', ''],
+    ['ZZ_IMNUM', '進廠申請編號', 'textbox', 'readonly', '', '', '', '12', '', '', 'header', 'main', '2', 'ALN', '20', '', '', '', 'TRUE', '進廠申請編號', ''],
 
-    // Header fields - 收容車登錄 tab (使用「關聯」指定資料來源，這些欄位屬於其他物件)
-    ['CONTAINMENTDATE', '收容日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', 'DATE', '', '', '', '', 'TRUE', '收容日期', 'ZZ_VEHICLE_DYNAMIC'],
-    ['CONTAINMENTUNIT', '收容單位', 'textbox', '', 'zz_dept', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', 'ALN', '30', '', '', '', 'TRUE', '收容單位', 'ZZ_VEHICLE_DYNAMIC'],
-    ['REPAIRSITE', '送修廠段', 'textbox', '', 'ZZ_DEPT', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', 'ALN', '30', '', '', '', 'TRUE', '送修廠段', 'ZZ_VEHICLE_DYNAMIC'],
+    // Header fields - 收容車登錄 tab (使用「關聯」指定資料來源，這些欄位屬於其他物件，欄=空白自動分欄)
+    ['CONTAINMENTDATE', '收容日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', '', 'DATE', '', '', '', '', 'TRUE', '收容日期', 'ZZ_VEHICLE_DYNAMIC'],
+    ['CONTAINMENTUNIT', '收容單位', 'textbox', '', 'zz_dept', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', '', 'ALN', '30', '', '', '', 'TRUE', '收容單位', 'ZZ_VEHICLE_DYNAMIC'],
+    ['REPAIRSITE', '送修廠段', 'textbox', '', 'ZZ_DEPT', 'ZZ_VEHICLE_DYNAMIC', '', '14', '', '', 'header', '收容車登錄', '', 'ALN', '30', '', '', '', 'TRUE', '送修廠段', 'ZZ_VEHICLE_DYNAMIC'],
 
     // Header fields - 開工車登錄 tab
-    ['STARTDATE', '開工日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '12', '', '', 'header', '開工車登錄', 'DATE', '', '', '', '', 'TRUE', '開工日期', 'ZZ_VEHICLE_DYNAMIC'],
-    ['FINISHDATE', '預完日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '12', '', '', 'header', '開工車登錄', 'DATE', '', '', '', '', 'TRUE', '預完日期', 'ZZ_VEHICLE_DYNAMIC'],
-    ['ZZ_PAINT', '油漆', 'checkbox', '', '', 'workorder', '', '', '', '', 'header', '開工車登錄', 'YORN', '', '', '', '0', 'TRUE', '油漆', ''],
+    ['STARTDATE', '開工日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '12', '', '', 'header', '開工車登錄', '', 'DATE', '', '', '', '', 'TRUE', '開工日期', 'ZZ_VEHICLE_DYNAMIC'],
+    ['FINISHDATE', '預完日期', 'textbox', '', 'DATELOOKUP', 'ZZ_VEHICLE_DYNAMIC', '', '12', '', '', 'header', '開工車登錄', '', 'DATE', '', '', '', '', 'TRUE', '預完日期', 'ZZ_VEHICLE_DYNAMIC'],
+    ['ZZ_PAINT', '油漆', 'checkbox', '', '', 'workorder', '', '', '', '', 'header', '開工車登錄', '', 'YORN', '', '', '', '0', 'TRUE', '油漆', ''],
 
     // Detail fields - 開工車登錄 tab (使用「關聯」指定 table relationship = ZZ_JOB_NUMBER)
-    ['eq24', '車號', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', '', '120', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', ''],
-    ['jobnum', '工作號', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', 'ZZ_JOBNUM', '200', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', ''],
-    ['ACTWORK', '實際工時', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', '', '', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', ''],
+    ['eq24', '車號', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', '', '120', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', '', ''],
+    ['jobnum', '工作號', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', 'ZZ_JOBNUM', '200', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', '', ''],
+    ['ACTWORK', '實際工時', 'tablecol', 'readonly', '', 'ZZ_JOB_NUMBER', '', '', '', '', 'detail', '開工車登錄', '', '', '', '', '', '', '', '', ''],
 
     // Detail fields - 檢修進度 tab (使用「關聯」指定 table relationship = ZZ_WOLISTS)
-    ['assetnum', '資產編號', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '120', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', ''],
-    ['WOJP3', '工單編號', 'tablecol', '', '', 'ZZ_WOLISTS', 'ZZ_PMWO,ZZ_PMWOTF', '200', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', ''],
-    ['DESCRIPTION', '說明', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '350', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', ''],
-    ['STATUS', '狀態', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', ''],
+    ['assetnum', '資產編號', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '120', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', '', ''],
+    ['WOJP3', '工單編號', 'tablecol', '', '', 'ZZ_WOLISTS', 'ZZ_PMWO,ZZ_PMWOTF', '200', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', '', ''],
+    ['DESCRIPTION', '說明', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '350', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', '', ''],
+    ['STATUS', '狀態', 'tablecol', 'readonly', '', 'ZZ_WOLISTS', '', '', '', '', 'detail', '檢修進度', '', '', '', '', '', '', '', '', ''],
   ];
 
   // Add sample data rows
@@ -200,9 +203,9 @@ export async function createSATemplate(outputPath: string): Promise<void> {
   }
 
   // DB dropdowns
-  // 資料類型 (M欄)
+  // 資料類型 (N欄)
   for (let row = 2; row <= maxRow; row++) {
-    fieldSheet.getCell(`M${row}`).dataValidation = {
+    fieldSheet.getCell(`N${row}`).dataValidation = {
       type: 'list',
       allowBlank: true,
       formulae: [`"${DROPDOWN_OPTIONS.maxType.join(',')}"`],
@@ -210,9 +213,9 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     };
   }
 
-  // DB必填 (P欄)
+  // DB必填 (Q欄)
   for (let row = 2; row <= maxRow; row++) {
-    fieldSheet.getCell(`P${row}`).dataValidation = {
+    fieldSheet.getCell(`Q${row}`).dataValidation = {
       type: 'list',
       allowBlank: true,
       formulae: [`"${DROPDOWN_OPTIONS.dbRequired.join(',')}"`],
@@ -220,9 +223,9 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     };
   }
 
-  // 持久化 (R欄)
+  // 持久化 (S欄)
   for (let row = 2; row <= maxRow; row++) {
-    fieldSheet.getCell(`R${row}`).dataValidation = {
+    fieldSheet.getCell(`S${row}`).dataValidation = {
       type: 'list',
       allowBlank: true,
       formulae: [`"${DROPDOWN_OPTIONS.persistent.join(',')}"`],
@@ -240,8 +243,8 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     ['Maximo XML Generator - SA 文件填寫說明'],
     [''],
     ['📋 欄位分類'],
-    ['綠色標題欄位 (A-L)', 'UI 配置 - 用於產生 Presentation XML'],
-    ['藍色標題欄位 (M-T)', 'DB 配置 - 用於產生 Database SQL'],
+    ['綠色標題欄位 (A-M)', 'UI 配置 - 用於產生 Presentation XML'],
+    ['藍色標題欄位 (N-U)', 'DB 配置 - 用於產生 Database SQL'],
     [''],
     ['📋 下拉選單欄位 (UI)'],
     ['欄位', '可選值'],
@@ -270,6 +273,7 @@ export async function createSATemplate(outputPath: string): Promise<void> {
     ['可排序', '僅用於 list 區域的欄位'],
     ['區域', 'header=表單區 / detail=明細資料表 / list=清單頁'],
     ['Tab名稱', '所屬 Tab 名稱，例如 main, 開工車登錄'],
+    ['欄', '多欄佈局的欄位編號。空白或0=自動分欄(每4個欄位一欄), 1/2/3...=手動指定'],
     [''],
     ['📝 DB 欄位說明'],
     ['資料類型', 'Maximo 資料類型：ALN=文字, INTEGER=整數, DECIMAL=小數, DATE=日期, YORN=是否'],
