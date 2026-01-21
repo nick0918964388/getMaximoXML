@@ -1,7 +1,7 @@
 import type { ProcessedField } from '../types';
 import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox } from './textbox';
 import { generateCheckbox } from './checkbox';
-import { generateId } from '../parsers/sa-parser';
+import { generateId } from '../utils/id-generator';
 
 interface SectionOptions {
   border?: boolean;

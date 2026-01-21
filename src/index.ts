@@ -11,7 +11,10 @@ export type {
 } from './types';
 
 // Parsers
-export { SAParser, parseExcelRow, groupFieldsByArea, processFields, generateId, generateFieldName } from './parsers/sa-parser';
+export { SAParser, parseExcelRow, groupFieldsByArea, processFields, generateFieldName } from './parsers/sa-parser';
+
+// Utilities
+export { generateId, resetIdGenerator } from './utils/id-generator';
 
 // Generators
 export {

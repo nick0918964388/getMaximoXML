@@ -1,0 +1,1203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mbs.doc,sr/c_sr_application.html" beanclass="com.tra.webclient.beans.servicedesk.CustTicketAppBean" id="zz_acceptfactory" ismobile="false" keyattribute="zz_imnum" mboname="SR" orderby="TICKETID desc" resultstableid="results_showlist" version="7.1.0.0" whereclause="historyflag = 0 and  status not in ('結案','取消') and (ticketid IN (SELECT ticketid FROM ZZ_VEHICLE_DYNAMIC zvd WHERE RECEIVINGSITE IN (select department from person where personid= :&amp;USERNAME&amp;))OR ticketid IN (SELECT ticketid FROM ZZ_VEHICLE_DYNAMIC zvd WHERE CONTAINMENTUNIT IN (SELECT department FROM person WHERE personid = :&amp;USERNAME&amp;)) or ticketid IN (SELECT ticketid FROM ZZ_VEHICLE_DYNAMIC zvd WHERE repairsite IN (select department from person where personid= :&amp;USERNAME&amp;)))">
+	<page id="mainrec">
+		<include controltoclone="pageHeader" id="INCLUDE-pageHeader"/>
+		<clientarea id="clientarea">
+			<datasrc id="serv_add" relationship="SERVICEADDRESS"/>
+			<tabgroup id="maintabs" style="form">
+				<tab default="true" id="results" label="清單" type="list">
+					<menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+					<table apprestrictions="class='進廠收容'  and (origrecordclass not in ('特檢申請') or origrecordclass is null)" datasrc="results_showlist" id="results_showlist" inputmode="readonly" label="進廠申請" mboname="SR" orderby="zz_imnum desc" selectmode="multiple" startempty="false">
+						<tablebody displayrowsperpage="50" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+							<tablecol dataattribute="ticketid" filterable="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="選取橫列 {0}" sortable="false" type="event"/>
+							<tablecol applink="zz_asset" dataattribute="zz_eq24" filterable="true" id="1625826474803" lookup="asset" menutype="normal" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" type="link"/>
+							<tablecol dataattribute="ZZ_JOB_NUMBER.JOBNUM" filterable="true" id="1670837929791" mxevent="selectrecord" mxevent_desc="移至%1" sigoption="ZZ_LIST_UIHIDE" sigoptiondatasrc="MAINRECORD" sortable="false" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.STATUS.DESCRIPTION" filterable="true" id="1623936807768" label="檢修動態" mxevent="selectrecord" mxevent_desc="移至%1" sortable="false" width="65"/>
+							<tablecol dataattribute="ZZ_TYPE" filterable="true" id="1625159482586" label="檢修級別" lookup="WORKTYPE" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.CONTAINMENTDATE" filterable="true" id="1623936717779" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.ENTRYDATE" filterable="true" id="1623936766820" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.STARTDATE" filterable="true" id="1629438799306" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.REPACOMPDATE" filterable="true" id="1623936789461" label="完工日期" mxevent="selectrecord" mxevent_desc="移至%1" sigoption="ZZ_HID" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.REPACOMPDATE" filterable="true" id="1629438803984" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.TESTRUNDATE" filterable="true" id="1623936831808" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.DELIUNITDATE" filterable="true" id="1628649585829" mxevent="selectrecord" mxevent_desc="移至%1" sortable="true" width="65"/>
+							<tablecol dataattribute="zz_imnum" filterable="true" id="1663318255677" label="進廠申請編號" mxevent="selectrecord" sortable="true" targetid="移至%1"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.REPAIRSITE.DESCRIPTION" filterable="true" id="1668734922507" label="送修廠段" mxevent="selectrecord" sortable="false" targetid="移至%1" width="95"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.APLYUSER.DISPLAYNAME" filterable="true" id="1668734490144" label="申請人員" mxevent="selectrecord" sortable="true" targetid="移至%1" width="65"/>
+							<tablecol dataattribute="status" filterable="true" id="1693482800317" mxevent="selectrecord" sortable="true" targetid="移至%1" width="45"/>
+							<tablecol dataattribute="ZZ_VEHICLE_DYNAMIC.RECEIVINGSITE" filterable="true" id="1723514884596" mxevent="selectrecord" sortable="true" targetid="移至%1" width="45"/>
+							<tablecol dataattribute="SITEVISIT" filterable="true" id="1650955033710" mxevent="selectrecord" sigoption="ZZ_HID" sortable="true" targetid="移至%1" width="45"/>
+							<tablecol filterable="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="新增至書籤" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="main" label="進廠動態管理" tabchangeevent="switchedTab" type="insert">
+					<section border="false" id="main_grid3">
+						<sectionrow id="main_grid3_row1">
+							<sectioncol id="main_grid3_row1_col1">
+								<section id="main_grid3_row2_col1_2B">
+									<textbox applink="ZZ_ASSET" dataattribute="ZZ_EQ24" id="1629195850121" inputmode="required" lookup="ASSET" menutype="NORMAL" size="12"/>
+									<textbox dataattribute="ZZ_TYPE" id="1623935994850" inputmode="required" lookup="worktype" size="12"/>
+									<statictext align="left" id="1629951626677" label="&lt;font color='blue'&gt;*選取進廠原因，請先儲存再進行收容車登錄&lt;/font&gt;"/>
+									<textbox dataattribute="zz_imnum" id="1629256127208" inputmode="readonly" label="進廠申請編號" size="12"/>
+									<custTraStatement id="12312314123123">
+									</custTraStatement>
+								</section>
+								<section id="1663478495611">
+									<section id="1662521362714" sigoption="ZZ_ACC_D_NWATY">
+										<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.WOJP3" id="1677215391568" inputmode="readonly" label="MMIS定期工作單"/>
+										<statictext align="left" id="1677215472110" label="&lt;font color='blue'&gt;*請從開工車登錄選取機廠定期工單&lt;/font&gt;"/>
+									</section>
+									<section id="1662521369479" sigoption="ZZ_ACC_D_WATY">
+										<textbox applink="ZZ_PMWO,zz_pmwotf" dataattribute="ZZ_VEHICLE_DYNAMIC.WOJP3" id="1677215437564" label="MMIS定期工作單" menutype="normal"/>
+										<statictext align="left" id="1677215536188" label="&lt;font color='blue'&gt;*請從開工車登錄選取機廠定期工單&lt;/font&gt;"/>
+									</section>
+								</section>
+								<section id="1748950219281">
+									<statictext align="left" id="1748951618118" label="&lt;font color='red'&gt;*臨修再進廠時，請勾選「再進廠」標記&lt;/font&gt;"/>
+									<statictext align="left" id="1748949613549" label="&lt;font color='blue'&gt; *如為'人為疏失'所至，則不可勾選再進廠&lt;/font&gt;"/>
+									<checkbox dataattribute="SITEVISIT" id="1748950219286" label="再進廠" sigoption="ZZ_SITEVISIT_READONLY"/>
+									<textbox dataattribute="ZZ_ORI_JOBNUM" id="1634206142613" inputmode="readonly" label="原工作號" size="16"/>
+									<textbox dataattribute="PLUSAMECHCOMMENTS" id="1723168135604" inputmode="readonly" label="交通部檢修別" size="5"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="main_grid3_row1_col2">
+								<section id="main_grid3_row1_col1_1">
+									<textbox dataattribute="asset.description" id="1629196348282" inputmode="readonly" size="30"/>
+									<multilinetextbox columns="45" dataattribute="ZZ_VEHICLE_DYNAMIC.DESCRIPTION_LONGDESCRIPTION" id="1629174215932" label="原因說明" rows="7"/>
+								</section>
+								<section id="1748951871034" sigoption="ZZ_CMWO">
+									<section id="1748949500409" sigoption="ZZ_NOT_REENTRY">
+										<statictext align="left" id="1748951606810" label="&lt;font color='red'&gt;*若未勾選「再進廠」，請說明原因。&lt;/font&gt;"/>
+										<multilinetextbox columns="45" dataattribute="ZZ_NOTVISIT_DESC" id="1748949602210" rows="4"/>
+									</section>
+								</section>
+							</sectioncol>
+							<sectioncol id="1623935771168"/>
+							<sectioncol id="1628250532257">
+								<section id="1628250570093">
+									<attachments id="1632400734994"/>
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.aplyuser" id="1629174484688" inputmode="readonly" size="15"/>
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.APLYUSER.displayname" id="1629172239097" inputmode="readonly" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1632400725411">
+								<section id="1632400734991"/>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<tabgroup id="1623210057958">
+						<tab id="1623210057960" label="進廠收容車登錄" sigoption="ISCAR">
+							<section id="1623140702110" relationship="ZZ_VEHICLE_DYNAMIC">
+								<sectionrow id="1623140702112">
+									<sectioncol id="1623140702114">
+										<section id="1623140702115">
+											<textbox dataattribute="CONTAINMENTDATE" id="1623140702119" lookup="DATELOOKUP" size="14"/>
+											<statictext align="left" id="1637552163348" label="&lt;font color='blue'&gt;*收容日期由機務段填寫&lt;/font&gt;"/>
+											<textbox dataattribute="CONTAINMENTUNIT" id="1623140702120" lookup="zz_dept" size="14" smartfilloff="true"/>
+											<textbox dataattribute="REPAIRSITE" id="1623140702127" label="送修廠段" lookup="ZZ_DEPT" size="14"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1623140702122">
+										<section id="1623140702124">
+											<textbox dataattribute="CONTAINMENTREASON" id="1623140702128" label="進廠收容原因" size="35"/>
+											<textbox dataattribute="CONTAINMENTUNIT.DESCRIPTION" id="1624335483216" inputmode="readonly" label="收容單位說明" size="35"/>
+											<textbox dataattribute="REPAIRSITE.DESCRIPTION" id="1623140702121" inputmode="readonly" label="送修廠段說明" size="35"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1624335380879">
+										<section id="1624335390305">
+											<textbox dataattribute="APLYUSER" id="1629342661091" inputmode="readonly" size="16"/>
+											<textbox dataattribute="APLYUSER.DISPLAYNAME" id="1629342668921" inputmode="readonly" size="16"/>
+										</section>
+										<section id="1662511807538" sigoption="ZZ_HID">
+											<statictext align="left" id="1663483886261" label="&lt;font color='blue'&gt;*若出廠三個月裡內問題時，由機務段點擊開立進廠保固單&lt;/font&gt;"/>
+											<sectionrow id="1662511807542">
+												<sectioncol id="1662511807553">
+													<buttongroup id="1662511807555">
+														<pushbutton id="1662511807556" label="開立進廠收容(保固)" mxevent="srAdd"/>
+													</buttongroup>
+												</sectioncol>
+											</sectionrow>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tab>
+						<tab id="1623210253536" label="進廠車登錄" sigoption="ISWORK">
+							<section id="1623137774268" relationship="ZZ_VEHICLE_DYNAMIC">
+								<sectionrow id="1623137774270">
+									<sectioncol id="1623137774271">
+										<section id="1623137774272">
+											<textbox dataattribute="CONTAINMENTDATE" id="1623141746928" inputmode="readonly" lookup="DATELOOKUP" size="14"/>
+											<textbox dataattribute="ENTRYDATE" id="1623137774276" lookup="DATELOOKUP" size="14"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1623137774278">
+										<section id="1623137774279">
+											<textbox dataattribute="CONTAINMENTREASON" id="1624335944646" label="進廠收容原因" size="50"/>
+											<multiparttextbox dataattribute="RECEIVINGSITE" descdataattribute="RECEIVINGSITE.DESCRIPTION" id="1628245842927" lookup="ZZ_DEPT"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1624335798905">
+										<section id="1624335807596">
+											<textbox dataattribute="ENTRYUSER" id="1629342513790" inputmode="readonly" size="16"/>
+											<textbox dataattribute="ENTRYUSER.DISPLAYNAME" id="1629342520191" inputmode="readonly" size="16"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tab>
+						<tab id="1623210258366" label="開工車登錄" sigoption="ISWORK">
+							<section id="1623140702129">
+								<sectionrow id="1623140702131">
+									<sectioncol id="1623140702132">
+										<section id="1623140702133" relationship="ZZ_VEHICLE_DYNAMIC">
+											<textbox dataattribute="CONTAINMENTDATE" id="1624336261977" inputmode="readonly" label="收容日期" lookup="DATELOOKUP" size="12"/>
+											<textbox dataattribute="ENTRYDATE" id="1623142313730" inputmode="readonly" lookup="DATELOOKUP" size="12"/>
+											<textbox dataattribute="STARTDATE" id="1623142381218" lookup="DATELOOKUP" size="12"/>
+											<statictext id="1702862372192" label="&lt;font color='red'&gt;*開工日期存檔後，廠檢修工單&lt;/font&gt;"/>
+											<statictext id="1702862237779" label="&lt;font color='red'&gt;依據開工日開出工單(30分鐘內)&lt;/font&gt;"/>
+											<statictext id="1629951820125" label="&lt;font color='blue'&gt;*開工日期存檔前，本次進廠是否含油漆&lt;/font&gt;"/>
+											<checkbox dataattribute="workorder.ZZ_PAINT" id="1706251665871"/>
+											<statictext id="1706252111927" label="&lt;font color='blue'&gt;*開工日期存檔後，系統自動帶出預完日期&lt;/font&gt;"/>
+											<textbox dataattribute="FINISHDATE" id="1623142034978" lookup="DATELOOKUP" size="12"/>
+											<pushbutton id="1702367737192" label="移至檢修計畫" mxevent="GOTOPM1"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1623140702144">
+										<section id="1623140702145">
+											<sectionrow id="1630291121854">
+												<sectioncol id="1630291134762">
+													<section id="1710923679939">
+														<sectionrow id="1710923703209">
+															<sectioncol id="1710923703215">
+																<section id="1624336261976" relationship="ZZ_VEHICLE_DYNAMIC">
+																	<textbox dataattribute="CONTAINMENTREASON" id="1623140702147" label="進廠原因" size="50"/>
+																	<textbox dataattribute="CONSTRUCTIONSITE" id="1623142510610" lookup="zz_CLASSSTRUCTURE" sigoption="ZZ_HID" size="50"/>
+																	<statictext align="left" id="1629951939764" label="&lt;font color='blue'&gt;*開立臨修工單或選取定期工單，確認指派主施工場區&lt;/font&gt;" sigoption="ZZ_HID"/>
+																	<multiparttextbox applink="ZZ_PMWO,ZZ_CMWO" dataattribute="WOJP3" descdataattribute="WORKORDER.description" descinputmode="readonly" id="1627991424338" label="MMIS工作單" menutype="normal" sigoption="ZZ_HID"/>
+																</section>
+															</sectioncol>
+														</sectionrow>
+														<sectionrow id="1710923697846">
+															<sectioncol id="1710923697852">
+																<section id="1710923812266" sigoption="ZZ_EQ23">
+																	<multiparttextbox dataattribute="PLUSAINPUTMETHOD" descdataattribute="ZZ_EQ23.description" id="1710930455600" label="委外廠商" lookup="ZZ_TYPE_03_EQ23"/>
+																	<statictext align="left" id="1712040774088" label="&lt;font color='red'&gt;*請選取委外廠商：77(煜翔機械)/78(仕佳興業)/79(秦陽機械)&lt;/font&gt;"/>
+																</section>
+															</sectioncol>
+														</sectionrow>
+													</section>
+												</sectioncol>
+												<sectioncol id="1630291121857"/>
+											</sectionrow>
+											<section id="1706761274224">
+												<section id="1629302500779" sigoption="ZZ_ACC_STARTDATE">
+													<statictext align="left" id="1699336686303" label="&lt;font color='blue'&gt;*選取定期工單後，再填入工作號&lt;/font&gt;" sigoption="ZZ_HID"/>
+													<statictext align="left" id="1678787251192" label="&lt;font color='red'&gt;*若保固再進廠，工作號請填寫原工作號，最後碼為再進廠次數&lt;/font&gt;" sigoption="ZZ_HID"/>
+													<sectionrow id="1629302511259">
+														<sectioncol id="1629302517949">
+															<buttongroup id="1699524699481" sigoption="ZZ_HID">
+																<pushbutton id="1699524699486" label="移至檢修計畫" mxevent="GOTOPM"/>
+															</buttongroup>
+														</sectioncol>
+														<sectioncol id="1629302514459">
+															<buttongroup id="1627988414393">
+																<pushbutton id="1627988931754" label="是否需開立臨修單" mxevent="createCMWOAA" sigoption="ZZ_TYPECM"/>
+																<pushbutton id="1627988414395" label="選取機廠定期工單" mxevent="selectPMWO" sigoption="ZZ_TYPEPM"/>
+															</buttongroup>
+														</sectioncol>
+														<sectioncol id="1629302511261"/>
+													</sectionrow>
+													<sectionrow id="1632281761883">
+														<sectioncol id="1632281761887">
+															<statictext align="left" id="1706762411064" label="&lt;font color='red'&gt;*再進廠勾點後，點擊工作號自動編碼時，依原工作號往後編碼&lt;/font&gt;"/>
+															<table beanclass="com.tra.webclient.beans.servicedesk.CustJobNumBean" id="1632281814502" label="工作號清單" orderby="position" relationship="ZZ_JOB_NUMBER">
+																<buttongroup id="1634263960973">
+																	<pushbutton id="1653475397789" label="車輛修製工時統計" mxevent="caculateLabor" sigoption="ZZ_HID"/>
+																	<pushbutton id="1634263960975" label="工作號自動編碼" mxevent="genJobNum" sigoption="ZZ_NOT_REENTRY" sigoptiondatasrc="MAINRECORD"/>
+																	<pushbutton datasrc="MAINRECORD" id="1711935766254" label="工作號自動編碼(再進廠)" mxevent="ZZ_REENTRY_BTN" sigoption="ZZ_REENTRY_BTN" sigoptiondatasrc="MAINRECORD" targetid="1632281814502"/>
+																	<pushbutton datasrc="MAINRECORD" id="1634263960975_01" label="工作號自動編碼(再進廠)建置中" mxevent="ZZ_REENTRY_BTN_TEST" sigoption="ZZ_HID" sigoptiondatasrc="MAINRECORD" targetid="1632281814502"/>
+																</buttongroup>
+																<tablebody displayrowsperpage="10" id="1632281814504">
+																	<tablecol dataattribute="eq24" id="1632281841791" inputmode="readonly"/>
+																	<tablecol applink="ZZ_JOBNUM" dataattribute="jobnum" id="1634264189331" inputmode="readonly" menutype="normal" width="200"/>
+																	<tablecol dataattribute="ZZ_PLANMANDAY.WORKDAY" id="1634264192050" inputmode="readonly" label="預計施工"/>
+																	<tablecol dataattribute="ACTWORK" id="1634264279040" inputmode="readonly"/>
+																	<tablecol id="1632282590943" mxevent="getworknumber" mxevent_desc="取工作號" mxevent_icon="changestatus_whitebg.gif" sigoption="ZZ_HID"/>
+																</tablebody>
+																<tabledetails id="1632281814507"/>
+															</table>
+														</sectioncol>
+													</sectionrow>
+												</section>
+												<statictext align="left" id="1716192902338" label="&lt;font color='blue'&gt;*請在下列外包檢修工單「檢修單位」選取委外檢修廠商&lt;/font&gt;"/>
+												<table id="1716191817088" label="外包檢修工單" orderby="wojp3" relationship="ZZ_WO_OUTSO">
+													<tablebody displayrowsperpage="100" id="1716191817095">
+														<tablecol applink="ZZ_PMWO,ZZ_PMWOTF" dataattribute="WOJP3" id="1716191817102" menutype="hyperlink" width="200"/>
+														<tablecol dataattribute="DESCRIPTION" id="1716191817103" inputmode="readonly" width="350"/>
+														<tablecol dataattribute="OWNERGROUP" id="1716191817105" lookup="ZZ_PERSONGROUP_OS"/>
+														<displayrule dataattribute="STATUS" id="1716191817112">
+															<exact classname="txtbold txtdarkgreen" id="1716191817114" value="執行中已派工"/>
+														</displayrule>
+													</tablebody>
+												</table>
+											</section>
+										</section>
+									</sectioncol>
+									<sectioncol id="1629342708003">
+										<section id="1629342719162" relationship="ZZ_VEHICLE_DYNAMIC">
+											<textbox dataattribute="STARTuser" id="1629342785741" inputmode="readonly" size="16"/>
+											<textbox dataattribute="startuser.DISPLAYNAME" id="1629342719164" inputmode="readonly" size="16"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+								<sectionrow id="1627988886825">
+									<sectioncol id="1627988886826"/>
+								</sectionrow>
+							</section>
+						</tab>
+						<tab id="1623210261666" label="檢修進度" sigoption="ISWORK">
+							<section id="1663148457183">
+								<section border="true" id="1623849850533" sigoption="ZZ_HID">
+									<sectionrow id="1623849850534">
+										<sectioncol id="1623849850535">
+											<section id="1623849850536">
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.WORKORDER.zz_ACTSTART" id="1625150192142" inputmode="readonly" lookup="datelooup" sigoption="ZZ_HID" size="12"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1623849850544">
+											<section id="1623849850545">
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.WORKORDER.zz_ACTFINISH" id="1623849850552" inputmode="readonly" label="完工日期(檢修紀錄)" lookup="datelookup" sigoption="ZZ_HID" size="30"/>
+												<checkbox dataattribute="repairlocflag" id="16238498505492" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1624336692765">
+											<section id="1625158819749" sigoption="ZZ_CMWO">
+												<checkbox dataattribute="repairlocflag" id="1625158819760" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1629438992067">
+											<section id="1629439001448" sigoption="ZZ_CMWO">
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.COMPDELIDATE" id="1629439001450" inputmode="readonly" size="18"/>
+												<checkbox dataattribute="repairlocflag" id="1629439001451" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+											</section>
+										</sectioncol>
+									</sectionrow>
+								</section>
+								<section id="1623140702151">
+									<section id="1628246004223" sigoption="ZZ_TYPEPM">
+										<table id="1628246004224" label="檢修工單" orderby="status desc" relationship="ZZ_WOLISTS">
+											<tablebody displayrowsperpage="100" id="1628246004226">
+												<tablecol dataattribute="assetnum" id="1628246004233" inputmode="readonly" width="120"/>
+												<tablecol applink="ZZ_PMWO,ZZ_PMWOTF" dataattribute="WOJP3" id="1628246004231" menutype="hyperlink" width="200"/>
+												<tablecol dataattribute="DESCRIPTION" id="1628246004232" inputmode="readonly" width="350"/>
+												<tablecol dataattribute="OWNERGROUP" id="16282460042332" lookup="PERSONGROUP"/>
+												<tablecol dataattribute="zz_ACTSTART" id="1628575805291" lookup="DATELOOKUP"/>
+												<tablecol dataattribute="zz_ACTFINISH" id="1628575570779" inputmode="readonly"/>
+												<tablecol dataattribute="STATUS" id="1628246004234" inputmode="readonly"/>
+												<displayrule dataattribute="STATUS" id="zz_displayrule1">
+													<exact classname="txtbold txtdarkgreen" id="zz_displayrule1_range1" value="執行中已派工"/>
+												</displayrule>
+											</tablebody>
+										</table>
+									</section>
+									<section id="1630060447127" sigoption="ZZ_TYPECM">
+										<table beanclass="com.tra.webclient.beans.servicedesk.CustRelWoDataBean" id="1630060464045" label="檢修工單" orderby="status desc" relationship="ZZ_WOLISTS">
+											<tablebody displayrowsperpage="100" id="1630060464048">
+												<tablecol dataattribute="assetnum" id="1630060464052" inputmode="readonly" width="120"/>
+												<tablecol applink="ZZ_CMWO,zz_cmwotf" dataattribute="WOJP3" id="1630060464049" menutype="hyperlink" width="200"/>
+												<tablecol dataattribute="DESCRIPTION" id="1630060464050" inputmode="readonly" width="350"/>
+												<tablecol dataattribute="WOL1" id="1630511801933" inputmode="readonly" lookup="zz_dept"/>
+												<tablecol dataattribute="OWNERGROUP" id="1630060464054" lookup="persongroup"/>
+												<tablecol id="1630288340643" mxevent="chldstatus" mxevent_desc="指定檢修單位" mxevent_icon="changestatus_whitebg.gif"/>
+												<tablecol dataattribute="zz_ACTSTART" id="1630060464056" lookup="datelookup"/>
+												<tablecol dataattribute="zz_ACTFINISH" id="1630060464057" inputmode="readonly"/>
+												<tablecol dataattribute="STATUS" id="1630060464059" inputmode="readonly"/>
+											</tablebody>
+										</table>
+									</section>
+								</section>
+							</section>
+							<section id="1663149111677" sigoption="ZZ_ACC_D_WATY">
+								<section border="true" id="1663149111681">
+									<sectionrow id="1663149111685">
+										<sectioncol id="1663149111688">
+											<section id="1663149111690">
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.WORKORDER.zz_ACTSTART" id="1663149111691" inputmode="readonly" lookup="datelooup" sigoption="ZZ_HID" size="12"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1663149111692">
+											<section id="1663149111694">
+												<checkbox dataattribute="repairlocflag" id="1663149111695" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.WORKORDER.zz_ACTFINISH" id="1663149111697" inputmode="readonly" lookup="datelookup" sigoption="ZZ_HID" size="30"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1663149111698">
+											<section id="1663149111699" sigoption="ZZ_CMWO">
+												<checkbox dataattribute="repairlocflag" id="1663149111701" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1663149111702">
+											<section id="1663149111704" sigoption="ZZ_CMWO">
+												<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.COMPDELIDATE" id="1663149111705" inputmode="readonly" size="18"/>
+												<checkbox dataattribute="repairlocflag" id="1663149111706" licensekey="SCHEDULER_760" sigoption="REPFACILITY"/>
+											</section>
+										</sectioncol>
+									</sectionrow>
+								</section>
+								<section id="1663149111708">
+									<section id="1663149111709" sigoption="ZZ_TYPEPM">
+										<table id="1663149111711" label="上次進廠檢修工單" orderby="wojp3" relationship="ZZ_WOLISTS_WAT">
+											<tablebody displayrowsperpage="100" id="1663149111713">
+												<tablecol dataattribute="assetnum" id="1663149111714" inputmode="readonly" width="120"/>
+												<tablecol applink="ZZ_PMWO,ZZ_PMWOTF" dataattribute="WOJP3" id="1663149111716" menutype="hyperlink" width="200"/>
+												<tablecol dataattribute="DESCRIPTION" id="1663149111717" inputmode="readonly" width="350"/>
+												<tablecol dataattribute="OWNERGROUP" id="1663149111719" lookup="PERSONGROUP"/>
+												<tablecol dataattribute="zz_ACTSTART" id="1663149111720" lookup="DATELOOKUP"/>
+												<tablecol dataattribute="zz_ACTFINISH" id="1663149111721" inputmode="readonly"/>
+												<tablecol dataattribute="STATUS" id="1663149111723" inputmode="readonly"/>
+												<displayrule dataattribute="STATUS" id="1663149111724">
+													<exact classname="txtbold txtdarkgreen" id="1663149111726" value="執行中已派工"/>
+												</displayrule>
+											</tablebody>
+										</table>
+									</section>
+									<section id="1663149111727" sigoption="ZZ_TYPECM">
+										<table beanclass="com.tra.webclient.beans.servicedesk.CustRelWoDataBean" id="1663149111729" label="上次進廠檢修工單" orderby="wojp3" relationship="ZZ_WOLISTS_WAT">
+											<tablebody displayrowsperpage="100" id="1663149111731">
+												<tablecol dataattribute="assetnum" id="1663149111732" inputmode="readonly" width="120"/>
+												<tablecol applink="ZZ_CMWO" dataattribute="WOJP3" id="1663149111733" menutype="hyperlink" width="200"/>
+												<tablecol dataattribute="DESCRIPTION" id="1663149111735" inputmode="readonly" width="350"/>
+												<tablecol dataattribute="WOL1" id="1663149111736" inputmode="readonly" lookup="zz_dept"/>
+												<tablecol dataattribute="OWNERGROUP" id="1663149111738" lookup="persongroup"/>
+												<tablecol id="1663149111739" mxevent="chldstatus" mxevent_desc="指定檢修單位" mxevent_icon="changestatus_whitebg.gif"/>
+												<tablecol dataattribute="zz_ACTSTART" id="1663149111741" lookup="datelookup"/>
+												<tablecol dataattribute="zz_ACTFINISH" id="1663149111742" inputmode="readonly"/>
+												<tablecol dataattribute="STATUS" id="1663149111744" inputmode="readonly"/>
+											</tablebody>
+										</table>
+									</section>
+								</section>
+							</section>
+						</tab>
+						<tab id="1623210267868" label="完工/試車登錄" sigoptiondatasrc="mainrecord">
+							<section id="1663150735370">
+								<section id="1623140702168" relationship="ZZ_VEHICLE_DYNAMIC">
+									<sectionrow id="1623140702169">
+										<sectioncol id="1623140702171">
+											<section id="1623142681750">
+												<textbox dataattribute="ENTRYDATE" id="1623142681754" inputmode="readonly" lookup="DATELOOKUP" size="14"/>
+												<textbox dataattribute="STARTDATE" id="1623142681755" inputmode="readonly" lookup="DATELOOKUP" size="14"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1623140702179">
+											<section id="1623140702180">
+												<textbox dataattribute="REPACOMPDATE" id="1623142846298" label="完工/出場日期" lookup="DATELOOKUP" size="14"/>
+												<textbox dataattribute="TESTRUNDATE" id="1628246625710" label="試車日期" lookup="DATELOOKUP" size="14"/>
+											</section>
+										</sectioncol>
+										<sectioncol id="1624336758203">
+											<section id="1624336766196">
+												<textbox dataattribute="TESTRUNuser" id="1629342880728" inputmode="readonly" size="16"/>
+												<textbox dataattribute="TESTRUNUSER.DISPLAYNAME" id="1634182485983" inputmode="readonly" size="16"/>
+											</section>
+										</sectioncol>
+									</sectionrow>
+								</section>
+								<section id="1627992268828" sigoption="ZZ_TYPEPM">
+									<table id="1627992285706" label="試車報告" relationship="ZZ_VEHICLE_DYNAMIC.ZZ_WO_LISTS">
+										<tablebody id="1627992285709">
+											<tablecol dataattribute="assetnum" id="16282460042331" inputmode="readonly" width="120"/>
+											<tablecol applink="zz_pmwo,ZZ_PMWOTF" dataattribute="WOJP3" id="actuals_children_table_tablebody_3" menutype="normal" type="link" width="200">
+												<textbox applink="zz_pmwo,ZZ_PMWOTF" id="164506885045911" menutype="normal"/>
+											</tablecol>
+											<tablecol dataattribute="DESCRIPTION" id="actuals_children_table_tablebody_4" inputmode="readonly" width="350"/>
+											<tablecol dataattribute="assetnum" id="actuals_children_table_tablebody_6" inputmode="readonly" width="120"/>
+											<tablecol dataattribute="zz_actfinish" id="1664788951112" inputmode="readonly"/>
+											<tablecol dataattribute="OWNERGROUP" id="1626588414954" lookup="PERSONGROUP"/>
+											<tablecol dataattribute="STATUSDESC.DESCRIPTION" id="1627993424307" inputmode="readonly"/>
+										</tablebody>
+									</table>
+								</section>
+								<section id="1632574383309" sigoption="ZZ_TYPECM">
+									<table id="1632574383311" label="試車報告" relationship="ZZ_VEHICLE_DYNAMIC.ZZ_WO_LISTS">
+										<tablebody id="1632574383312">
+											<tablecol dataattribute="assetnum" id="162824600423322" inputmode="readonly" width="120"/>
+											<tablecol applink="zz_cmwo,zz_cmwotf" dataattribute="WOJP3" id="1632574383313" menutype="normal" type="link" width="200">
+												<textbox applink="zz_cmwo,zz_cmwotf" id="16450688504591" menutype="normal"/>
+											</tablecol>
+											<tablecol dataattribute="DESCRIPTION" id="1632574383314" inputmode="readonly" width="350"/>
+											<tablecol dataattribute="assetnum" id="1632574383315" inputmode="readonly" width="120"/>
+											<tablecol dataattribute="zz_actfinish" id="1664789051883" inputmode="readonly"/>
+											<tablecol dataattribute="OWNERGROUP" id="1632574383317" lookup="PERSONGROUP"/>
+											<tablecol dataattribute="STATUSDESC.DESCRIPTION" id="1632574383318" inputmode="readonly"/>
+										</tablebody>
+									</table>
+								</section>
+							</section>
+						</tab>
+						<tab id="1623210265138" label="出廠車/交段車登錄" sigoption="ISWORK">
+							<section id="1623140632950" relationship="ZZ_VEHICLE_DYNAMIC">
+								<sectionrow id="1623140632952">
+									<sectioncol id="1623140632953">
+										<section id="1623140632955">
+											<textbox dataattribute="ENTRYDATE" id="1623143178750" inputmode="readonly" lookup="DATELOOKUP" size="14"/>
+											<textbox dataattribute="STARTDATE" id="1623143077790" inputmode="readonly" lookup="DATELOOKUP" size="14"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1623140632962">
+										<section id="1623140632964">
+											<textbox dataattribute="REPACOMPDATE" id="1667545833402" lookup="DATELOOKUP" size="14"/>
+											<textbox dataattribute="TESTRUNDATE" id="1629166452377" inputmode="readonly" label="試車日期" lookup="DATELOOKUP" size="14"/>
+											<statictext align="left" id="1672396863935" label="&lt;font color='blue'&gt;*若無開立試車單時，試車日期無須填報&lt;/font&gt;"/>
+											<textbox dataattribute="DELIUNITDATE" id="1628246600112" lookup="DATELOOKUP" size="14"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1624337062490">
+										<section id="1624337072376">
+											<textbox dataattribute="RECEIVINGUNIT" id="16282466001121" lookup="ZZ_DEPT" size="14"/>
+											<textbox dataattribute="RECEIVINGUNIT.DESCRIPTION" id="16282466001122" inputmode="readonly" label="接收單位說明" size="14"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1629342972660">
+										<section id="1629342991629">
+											<textbox dataattribute="DELIUNITuser" id="1629342991630" inputmode="readonly" size="14"/>
+											<textbox dataattribute="DELIUNITUSER.DISPLAYNAME" id="1629342991631" inputmode="readonly" size="14"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+								<pushbutton id="1632728881916" label="結案" mxevent="srComplete"/>
+							</section>
+						</tab>
+					</tabgroup>
+				</tab>
+				<tab default="false" id="1635332778699" label="工作號匯出W0" sigoption="ZZ_HID" type="list">
+					<menubar event="search" id="1635332778701" sourcemethod="getAppSearchOptions"/>
+					<table beanclass="com.tra.webclient.beans.servicedesk.CustTickHistoryAppBean" id="1635332778702" inputmode="readonly" label="工作號匯出W0" relationship="ZZ_JOB_NUMBER_ALL" startempty="false">
+						<buttongroup align="left" id="1648511231353">
+							<pushbutton id="1648511231356" label="匯出W0"/>
+						</buttongroup>
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="1635332778703">
+							<tablecol dataattribute="ticketid" filterable="false" id="1635332778704" mxevent="toggleselectrow" mxevent_desc="選取橫列 {0}" sortable="false" type="event"/>
+							<tablecol dataattribute="INMONTH" filterable="true" id="1635332778706" smartfilloff="true" sortable="true" width="80"/>
+							<tablecol dataattribute="OUTMONTH" filterable="true" id="1635332778707" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="ACTDATE" filterable="true" id="1635332778708" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol applink="zz_asset" dataattribute="EQ24" filterable="true" id="1635332778705" inputmode="readonly" menutype="normal" mxevent="selectrecord" mxevent_desc="移至%1" smartfilloff="true" sortable="true">
+								<textbox applink="zz_asset" id="1645068850459" menutype="normal"/>
+							</tablecol>
+							<tablecol applink="ZZ_JOBNUM" dataattribute="JOBNUM" filterable="true" id="16353327787052" inputmode="readonly" menutype="normal" smartfilloff="true" sortable="true" width="180">
+								<textbox applink="ZZ_JOBNUM" id="1645068850469" menutype="normal"/>
+							</tablecol>
+							<tablecol dataattribute="WORKTYPE" filterable="true" id="1635332778709" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="EQ4" filterable="true" id="1635332778710" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="WOSTART" filterable="true" id="1635332778711" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="WOFINISH" filterable="true" id="1635332778712" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="OUTDATE" filterable="true" id="16353327787122" smartfilloff="true" sortable="true" width="95"/>
+							<tablecol dataattribute="EX1" filterable="true" id="1648460224107" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="EXPWORK" filterable="true" id="1648460253127" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="ACTWORK" filterable="true" id="1648460275257" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="OVERDUE" filterable="true" id="1648460291877" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="PLANFAC" filterable="true" id="1648460311127" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="ACTFAC" filterable="true" id="1648460332966" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="ACTLABOR" filterable="true" id="1648460357507" smartfilloff="true" sortable="true"/>
+							<tablecol dataattribute="REGLABOR" filterable="true" id="1635332778713" smartfilloff="true" sortable="true"/>
+							<tablecol filterable="false" id="1635332778714" mxevent="BOOKMARK" mxevent_desc="新增至書籤" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="relatedrec" label="相關的記錄">
+					<section border="false" id="1624443334372">
+						<sectionrow id="1624443334374">
+							<sectioncol id="1624443334375">
+								<section id="1624443334377">
+									<textbox applink="zz_asset" dataattribute="assetnum" id="1624443334379" inputmode="readonly" menutype="normal" size="14"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1624443334380">
+								<section id="1624443334381">
+									<textbox dataattribute="asset.description" id="1624443334382" inputmode="readonly" size="30"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1624443334383">
+								<section id="1624443334384">
+									<textbox dataattribute="ZZ_JOB_NUMBER.jobnum" id="1735089133264" size="30"/>
+									<textbox dataattribute="ZZ_ORI_JOBNUM" id="1723166432564" size="30"/>
+									<textbox dataattribute="PLUSAMECHCOMMENTS" id="1714988395611" label="交通部檢修級別" size="5"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="relatedrec_related_ticket" label="進廠動態管單" orderby="relatedreckey" relationship="RELATEDTICKET">
+						<tablebody displayrowsperpage="10" filterable="true" id="relatedrec_related_ticket_tablebody">
+							<tablecol filterable="false" id="relatedrec_related_ticket_tablebody_1" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol applink="ZZ_ACCEPTFACTORY" dataattribute="ZZ_SR.ZZ_IMNUM" id="1663143264386" label="進廠申請編號" menutype="normal" sortable="false">
+								<textbox applink="ZZ_ACCEPTFACTORY" id="1663143264390" inputmode="readonly" menutype="normal"/>
+							</tablecol>
+							<tablecol dataattribute="relatedrectk.description" id="relatedrec_related_ticket_tablebody_3" label="說明" showfilterfield="true" sortable="false">
+								<textbox id="relatedrec_related_ticket_tablebody_3a" inputmode="readonly" longdescreadonly="true" lookup="longdesc"/>
+							</tablecol>
+							<tablecol dataattribute="relatedrecclass" id="relatedrec_related_ticket_tablebody_4" linkedcontrolid="relatedrec_related_ticket_1_grid3_4" sigoption="ZZ_HID"/>
+							<tablecol dataattribute="relatedrectk.status" id="relatedrec_related_ticket_tablebody_5" linkedcontrolid="relatedrec_related_ticket_1_grid3_3"/>
+							<tablecol dataattribute="relatetype" id="relatedrec_related_ticket_tablebody_6" linkedcontrolid="relatedrec_related_ticket_1_grid3_5"/>
+							<tablecol filterable="false" id="relatedrec_related_ticket_tablebody_7" mxevent="toggledeleterow" mxevent_desc="將橫列標示為刪除" mxevent_icon="btn_garbage.gif" sigoption="ZZ_HID" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="relatedrec_related_ticket_1">
+							<section id="relatedrec_grid2" label="明細" sigoption="ZZ_HID">
+								<sectionrow id="relatedrec_grid2_row1">
+									<sectioncol id="relatedrec_grid2_row1_col1">
+										<section id="relatedrec_grid2_1_col1">
+											<multiparttextbox dataattribute="relatedreckey" descdataattribute="relatedrectk.description" descinputmode="readonly" dynamic="true" id="relatedrec_related_ticket_1_grid7_1" lookup="ticket" menutype="ticket"/>
+											<textbox dataattribute="relatedrecclass" dynamic="true" id="relatedrec_related_ticket_1_grid3_4" lookup="valuelist"/>
+											<multiparttextbox dataattribute="relatedrectkt.assetnum" descdataattribute="relatedrectkt.asset.description" descinputmode="readonly" desclookup="longdesc" id="relatedrec_related_ticket_1_grid7_6" inputmode="readonly" rechover="asset_recordhover"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="relatedrec_grid3_row2_col2">
+										<section id="relatedrec_grid3_1_col2">
+											<textbox dataattribute="relatedrectk.status" dynamic="true" id="relatedrec_related_ticket_1_grid3_3"/>
+											<textbox dataattribute="relatetype" id="relatedrec_related_ticket_1_grid3_5" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="relatedrec_related_ticket_2" sigoption="ZZ_HID">
+							<pushbutton id="relatedrec_related_ticket_2_1" label="選取摘記卷" mxevent="selecttkonrelatedrec" sigoption="ZZ_HID"/>
+							<pushbutton default="true" id="relatedrec_related_ticket_2_2" label="新增" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+					<table id="1708057128397" label="相關的工作單" orderby="relatedrecwonum" relationship="RELATEDWO">
+						<tablebody displayrowsperpage="10" filterable="true" id="1708057128403">
+							<tablecol filterable="false" id="1708057128406" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol applink="ZZ_ACCEPTFACTORY" dataattribute="RELATEDRECWONUM" id="1708057128409" menutype="normal" sortable="false">
+								<textbox applink="ZZ_ACCEPTFACTORY" id="1708057128411" inputmode="readonly" menutype="normal"/>
+							</tablecol>
+							<tablecol dataattribute="RELATEDRECWO.DESCRIPTION" id="1708057128413" showfilterfield="true" sortable="false">
+								<textbox id="1708057128415" inputmode="readonly" longdescreadonly="true" lookup="longdesc"/>
+							</tablecol>
+							<tablecol dataattribute="relatedrecclass" id="1708057128417" linkedcontrolid="relatedrec_related_ticket_1_grid3_4" sigoption="ZZ_HID"/>
+							<tablecol dataattribute="relatedrectk.status" id="1708057128418" linkedcontrolid="relatedrec_related_ticket_1_grid3_3"/>
+							<tablecol dataattribute="relatetype" id="1708057128420" linkedcontrolid="relatedrec_related_ticket_1_grid3_5" sigoption="ZZ_HID"/>
+							<tablecol filterable="false" id="1708057128421" mxevent="toggledeleterow" mxevent_desc="將橫列標示為刪除" mxevent_icon="btn_garbage.gif" sigoption="ZZ_HID" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="1708057128423">
+							<section id="1708057128425" label="明細">
+								<sectionrow id="1708057128426">
+									<sectioncol id="1708057128428">
+										<section id="1708057128429">
+											<multiparttextbox applink="ZZ_PMWOTF,ZZ_CMWOTF" dataattribute="RELATEDRECWONUM" descdataattribute="RELATEDRECWO.DESCRIPTION" descinputmode="readonly" dynamic="true" id="1708057128431" label="相關的工作單" menutype="normal"/>
+											<textbox dataattribute="relatedrecclass" dynamic="true" id="1708057128432" lookup="valuelist" sigoption="ZZ_HID"/>
+											<multiparttextbox dataattribute="relatedrectkt.assetnum" descdataattribute="relatedrectkt.asset.description" descinputmode="readonly" desclookup="longdesc" id="1708057128434" inputmode="readonly" rechover="asset_recordhover" sigoption="ZZ_HID"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1708057128435">
+										<section id="1708057128437">
+											<textbox dataattribute="relatedrectk.status" dynamic="true" id="1708057128438"/>
+											<textbox dataattribute="relatetype" id="1708057128440" inputmode="readonly" sigoption="ZZ_HID"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="1708057128443" sigoption="ZZ_HID">
+							<pushbutton id="1708057128445" label="選取摘記卷" mxevent="selecttkonrelatedrec" sigoption="ZZ_HID"/>
+							<pushbutton default="true" id="1708057128446" label="新增" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+					<table beanclass="psdi.webclient.beans.servicedesk.ReportBean" id="ticketsolutions" inputmode="masked" label="解決方案" licensekey="ITUSCADV" orderby="relatedreckey" relationship="RELATEDSOLUTIONS" startempty="false">
+						<tablebody displayrowsperpage="10" filterable="false" filterexpanded="false" id="ticketsolutions_tablebody">
+							<tablecol filterable="false" id="ticketsolutions_tablebody_0" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol dataattribute="relatedreckey" id="ticketsolutions_tablebody_3" label="發送端"/>
+							<tablecol dataattribute="relatedrecclass" id="ticketsolutions_tablebody_4" label="原始類別"/>
+							<tablecol dataattribute="relatetype" id="ticketsolutions_tablebody_5"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.solution" id="ticketsolutions_tablebody_1"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.description" id="ticketsolutions_tablebody_2"/>
+						</tablebody>
+						<tabledetails id="ticketsolutions_tabledetails">
+							<section id="ticketsolutions_tabledetails_section" label="明細">
+								<richtextviewer dataattribute="RELATEDRECTKT.problemcode_longdescription" id="main_grid2_0"/>
+								<blankline id="blank1"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr1code_longdescription" id="main_grid2_1"/>
+								<blankline id="blank2"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr2code_longdescription" id="main_grid2_2"/>
+								<blankline id="blank3"/>
+							</section>
+							<table beanclass="psdi.webclient.beans.doclinks.DocLinksBean" collapsed="false" id="solution_attachments" inputmode="readonly" label="附件" relationship="DOCLINKS">
+								<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="solattachments_tablebody">
+									<tablecol dataattribute="document" id="solattachments_tablebody_2" type="openurl" urlattribute="weburl"/>
+									<tablecol dataattribute="docinfo.description" id="solattachments_tablebody_3"/>
+								</tablebody>
+							</table>
+						</tabledetails>
+					</table>
+				</tab>
+				<tab id="1629868677943" label="事故分類資料" sigoption="ZZ_HID">
+					<section border="false" id="1629868677947">
+						<sectionrow id="1629868677950">
+							<sectioncol id="1629868677952"/>
+							<sectioncol id="1629868677958"/>
+							<sectioncol id="1629868677963"/>
+						</sectionrow>
+					</section>
+					<table id="1629868677969" label="事故分類資料清單" relationship="ZZ_FAACCATE">
+						<tablebody displayrowsperpage="10" filterable="true" id="1629868677971">
+							<tablecol filterable="false" id="1629868677973" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol dataattribute="CATEGORYGROUP" id="1629868677975" lookup="VALUELIST" sortable="false" width="150"/>
+							<tablecol dataattribute="CATEGORY" id="1629889152097" lookup="zz_faaccate" showfilterfield="true" sortable="false" width="150"/>
+							<tablecol dataattribute="DESCRIPTION" id="1629868677979" showfilterfield="true" sortable="false"/>
+							<tablecol filterable="false" id="1629868677988" mxevent="toggledeleterow" mxevent_desc="將橫列標示為刪除" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="1629868677990">
+							<section id="1629868677992" label="明細">
+								<sectionrow id="1629868677994">
+									<sectioncol id="1629868677996">
+										<section id="1629868677998">
+											<textbox dataattribute="CATEGORYGROUP" dynamic="true" id="1629868678002" lookup="VALUELIST" size="20"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1629868678005">
+										<section id="1629868678007">
+											<textbox dataattribute="CATEGORY" id="1629868678011" size="20"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="1629889209146">
+										<section id="1629889218556">
+											<textbox dataattribute="DESCRIPTION" id="1629889218557" size="30"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="1629868678014">
+							<pushbutton default="false" id="1629868678019" label="新增" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+					<table beanclass="psdi.webclient.beans.servicedesk.ReportBean" id="1629868678064" inputmode="masked" label="解決方案" licensekey="ITUSCADV" orderby="relatedreckey" relationship="RELATEDSOLUTIONS" startempty="false">
+						<tablebody displayrowsperpage="10" filterable="false" filterexpanded="false" id="1629868678067">
+							<tablecol filterable="false" id="1629868678069" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol dataattribute="relatedreckey" id="1629868678070" label="發送端"/>
+							<tablecol dataattribute="relatedrecclass" id="1629868678072" label="原始類別"/>
+							<tablecol dataattribute="relatetype" id="1629868678074"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.solution" id="1629868678076"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.description" id="1629868678078"/>
+						</tablebody>
+						<tabledetails id="1629868678080">
+							<section id="1629868678082" label="明細">
+								<richtextviewer dataattribute="RELATEDRECTKT.problemcode_longdescription" id="1629868678084"/>
+								<blankline id="1629868678086"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr1code_longdescription" id="1629868678088"/>
+								<blankline id="1629868678090"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr2code_longdescription" id="1629868678091"/>
+								<blankline id="1629868678093"/>
+							</section>
+							<table beanclass="psdi.webclient.beans.doclinks.DocLinksBean" collapsed="false" id="1629868678095" inputmode="readonly" label="附件" relationship="DOCLINKS">
+								<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="1629868678097">
+									<tablecol dataattribute="document" id="1629868678099" type="openurl" urlattribute="weburl"/>
+									<tablecol dataattribute="docinfo.description" id="1629868678101"/>
+								</tablebody>
+							</table>
+						</tabledetails>
+					</table>
+				</tab>
+				<tab default="false" id="1732552350246" label="貨車外包設定" sigoption="ZZ_UPOSINGCOMP">
+					<section border="false" id="1732552350249">
+						<sectionrow id="1732552350251">
+							<sectioncol id="1732552350254">
+								<section id="17325523502491732552350254subSection">
+									<section id="1732552350269">
+										<table beanclass="psdi.webclient.system.beans.MultiselectDataBean" datasrc="1732552350272" id="1732552350272" inputmode="default" label="貨車車型清單" parentdatasrc="MAINRECORD" relationship="ZZ_CLASSSTRUCTURE_TF" selectmode="multiple">
+											<defaultvalue dataattribute="ZZ_CARKIND" defaulttype="query" id="1732556483358" value="13"/>
+											<defaultvalue dataattribute="ZZ_CARKIND" defaulttype="query" fromdatasrc="mainrecor" id="1732556738583" value="13"/>
+											<defaultvalue dataattribute="CLASSSTRUCTURE.ZZ_CARKIND" fromattribute="ZZ_CARKIND" id="1732556921973" value="13"/>
+											<defaultvalue dataattribute="ZZ_CARKIND" defaulttype="query" fromattribute="CLASSSTRUCTURE" id="1732557119284" value="13"/>
+											<sectionheader id="1733797206373" label="&lt;font color='blue'&gt;1-勾選欲設定外包單位的車型。&lt;/font&gt;"/>
+											<tablebody displayrowsperpage="10" filterable="true" id="1732552350274">
+												<tablecol dataattribute="CLASSIFICATIONID" filterable="false" id="1732557939851" mxevent="toggleselectrow" mxevent_desc="選取橫列 {0}" sortable="false" type="event"/>
+												<tablecol dataattribute="parent.CLASSIFICATIONID" id="1732602044959" label="車種" showfilterfield="true" sortable="true">
+													<textbox id="1732602044963" inputmode="readonly" longdescreadonly="true" lookup="longdesc"/>
+												</tablecol>
+												<tablecol dataattribute="CLASSIFICATIONID" id="1732555162338" inputmode="readonly" label="車型" showfilterfield="true" sortable="true">
+													<textbox id="1732555162341" inputmode="readonly" longdescreadonly="true" lookup="longdesc"/>
+												</tablecol>
+												<tablecol dataattribute="ZZ_OSINGCOMP" filterable="true" id="1732555160634" inputmode="readonly" label="外包單位" longdescreadonly="true" showfilterfield="true" sortable="true"/>
+											</tablebody>
+											<tabledetails id="1732552350297"/>
+										</table>
+									</section>
+									<section border="false" id="1732558779183">
+										<sectionrow id="1732558779186">
+											<sectioncol id="1732558779188">
+												<section id="1733797005650">
+													<statictext align="left" id="1733797224598" label="&lt;font color='blue'&gt;2.選取「外包廠商」，點擊「更新外包單位」便會批次更新。&lt;/font&gt;"/>
+													<textbox dataattribute="ZZ_OSCOMP" id="1733796448425" lookup="ZZ_PERSONGROUP_OS"/>
+												</section>
+											</sectioncol>
+											<sectioncol id="1732558779207">
+												<section id="1733796997067">
+													<statictext align="left" id="1733797313701" label="&lt;font color='blue'&gt;3.點擊「更新外包單位」，批次更新外包廠商設定。&lt;/font&gt;"/>
+													<buttongroup align="left" id="1733796448430">
+														<pushbutton id="1733796448431" label="更新外包單位" mxevent="ZZ_UPOSINGCOMP" targetid="1732552350272"/>
+													</buttongroup>
+												</section>
+											</sectioncol>
+											<sectioncol id="1732558779217">
+												<section id="1732558779220">
+													<statictext align="left" id="1733797394377" label="&lt;font color='blue'&gt;點擊「更新檢修計畫」，批次更新檢修計畫外包廠商設定。&lt;/font&gt;"/>
+													<buttongroup align="left" id="1732552350325">
+														<pushbutton default="false" id="1732552350330" label="更新檢修計畫" mxevent="ZZ_UPOSSET"/>
+													</buttongroup>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</section>
+							</sectioncol>
+							<sectioncol id="1733883751436"/>
+							<sectioncol id="1733883748869">
+								<section id="1733883795959">
+									<table datasrc="1733883826708" id="1733883826708" inputmode="readonly" label="清單" parentdatasrc="1732552350272" relationship="ZZ_ROUTE_STOP" selectmode="single">
+										<tablebody id="1733883826714">
+											<tablecol dataattribute="ASSETNUM" id="1733884037178"/>
+											<tablecol dataattribute="RTS1" id="1733884084611"/>
+											<tablecol dataattribute="JPNUM" id="1733884094262"/>
+											<tablecol dataattribute="description" id="1733883826718" label="工作計畫說明"/>
+										</tablebody>
+										<tabledetails id="1733883826721"/>
+									</table>
+								</section>
+							</sectioncol>
+							<sectioncol id="1732552350267"/>
+						</sectionrow>
+					</section>
+					<table beanclass="psdi.webclient.beans.servicedesk.ReportBean" id="1732552350332" inputmode="masked" label="解決方案" licensekey="ITUSCADV" orderby="relatedreckey" relationship="RELATEDSOLUTIONS" startempty="false">
+						<tablebody displayrowsperpage="10" filterable="false" filterexpanded="false" id="1732552350335">
+							<tablecol filterable="false" id="1732552350337" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol dataattribute="relatedreckey" id="1732552350340" label="發送端"/>
+							<tablecol dataattribute="relatedrecclass" id="1732552350342" label="原始類別"/>
+							<tablecol dataattribute="relatetype" id="1732552350344"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.solution" id="1732552350347"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.description" id="1732552350349"/>
+						</tablebody>
+						<tabledetails id="1732552350352">
+							<section id="1732552350354" label="明細">
+								<richtextviewer dataattribute="RELATEDRECTKT.problemcode_longdescription" id="1732552350357"/>
+								<blankline id="1732552350359"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr1code_longdescription" id="1732552350361"/>
+								<blankline id="1732552350364"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr2code_longdescription" id="1732552350366"/>
+								<blankline id="1732552350368"/>
+							</section>
+							<table beanclass="psdi.webclient.beans.doclinks.DocLinksBean" collapsed="false" id="1732552350370" inputmode="readonly" label="附件" relationship="DOCLINKS">
+								<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="1732552350373">
+									<tablecol dataattribute="document" id="1732552350376" type="openurl" urlattribute="weburl"/>
+									<tablecol dataattribute="docinfo.description" id="1732552350378"/>
+								</tablebody>
+							</table>
+						</tabledetails>
+					</table>
+				</tab>
+				<tab id="1733121151082" label="區間查詢">
+					<section border="false" id="1733121151085">
+						<sectionrow id="1733121151087">
+							<sectioncol id="1733121151089">
+								<section id="1733121765092">
+									<textbox dataattribute="ZZ_JSDATE_TEMP_S" id="1733121765097" lookup="DATELOOKUP" size="10"/>
+									<textbox dataattribute="ZZ_JSDATE_TEMP_E" id="1733121765100" label="開工日期(迄)" lookup="DATELOOKUP" size="10"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1733121151097">
+								<section id="1733121151100">
+									<textbox dataattribute="ZZ_REPACOMPDATE_S" id="1733121151102" lookup="DATELOOKUP" size="14"/>
+									<textbox dataattribute="ZZ_REPACOMPDATE_E" id="1733121151104" lookup="DATELOOKUP" size="14"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1733121151106">
+								<section id="1733121151108">
+									<textbox dataattribute="ZZ_TESTRUNDATE_S" id="1733121151110" lookup="DATELOOKUP" size="14"/>
+									<textbox dataattribute="ZZ_TESTRUNDATE_E" id="1733121151112" lookup="DATELOOKUP" size="14"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1733121151114">
+								<section id="1733121864698">
+									<textbox dataattribute="ZZ_DELIUNITDATE_S" id="1733121864704" lookup="DATELOOKUP" size="14"/>
+									<textbox dataattribute="ZZ_DELIUNITDATE_E" id="1733121864707" lookup="DATELOOKUP" size="14"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="1733121151123">
+								<section id="1733121151124">
+									<pushbutton id="1733124081223" label="查詢" mxevent="ZZ_ACC_LIST_CFM" targetid="1733121151168"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<section id="1733121151166">
+						<table datasrc="1733121151168" id="1733121151168" inputmode="readonly" label="進廠申請" relationship="ZZ_VEHICLE_DYNAMIC_ALL" selectmode="multiple" startempty="false">
+							<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="1733121151170">
+								<tablecol dataattribute="ticketid" filterable="false" id="1733121151173" mxevent="toggleselectrow" mxevent_desc="選取橫列 {0}" sigoption="ZZ_HID" sortable="false" type="event"/>
+								<tablecol applink="zz_asset" dataattribute="sr.ZZ_EQ24" filterable="true" id="1733121151175" lookup="asset" menutype="normal" mxevent="selectrecord" mxevent_desc="移至%1" type="link"/>
+								<tablecol dataattribute="sr.ASSET.EQ11" filterable="true" id="1733121151177" lookup="CLASSSTRUCTURE" smartfilloff="false" sortable="true"/>
+								<tablecol dataattribute="sr.ZZ_IMNUM" filterable="true" id="1733121151179" label="進廠申請編號" smartfilloff="false" sortable="true"/>
+								<tablecol dataattribute="STATUS.DESCRIPTION" filterable="true" id="1733121151181" label="檢修動態" sortable="false"/>
+								<tablecol dataattribute="sr.ZZ_TYPE" filterable="true" id="1733121151183" label="檢修級別" lookup="WORKTYPE" sortable="true" width="80"/>
+								<tablecol dataattribute="CONTAINMENTDATE" filterable="true" id="1733121151185" sortable="true" width="95"/>
+								<tablecol dataattribute="ENTRYDATE" filterable="true" id="1733121151187" sortable="true" width="95"/>
+								<tablecol dataattribute="STARTDATE" filterable="true" id="1733121151189" sortable="false" width="95"/>
+								<tablecol dataattribute="REPACOMPDATE" filterable="true" id="1733121151191" label="完工日期" sortable="true" width="95"/>
+								<tablecol dataattribute="TESTRUNDATE" filterable="true" id="1733121151193" sortable="true" width="95"/>
+								<tablecol dataattribute="DELIUNITDATE" filterable="true" id="1733121151195" sortable="true" width="95"/>
+								<tablecol filterable="false" id="1733121151197" mxevent="BOOKMARK" mxevent_desc="新增至書籤" mxevent_icon="btn_addtobookmarks.gif" sigoption="ZZ_HID" sortable="false" type="event"/>
+							</tablebody>
+						</table>
+					</section>
+					<section id="1733121151199"/>
+					<table beanclass="psdi.webclient.beans.servicedesk.ReportBean" id="1733121151201" inputmode="masked" label="解決方案" licensekey="ITUSCADV" orderby="relatedreckey" relationship="RELATEDSOLUTIONS" startempty="false">
+						<tablebody displayrowsperpage="10" filterable="false" filterexpanded="false" id="1733121151203">
+							<tablecol filterable="false" id="1733121151205" mxevent="toggledetailstate" mxevent_desc="顯示明細" sortable="false" type="event"/>
+							<tablecol dataattribute="relatedreckey" id="1733121151207" label="發送端"/>
+							<tablecol dataattribute="relatedrecclass" id="1733121151209" label="原始類別"/>
+							<tablecol dataattribute="relatetype" id="1733121151211"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.solution" id="1733121151213"/>
+							<tablecol dataattribute="RELATEDRECTKT.TKSOLUTION.description" id="1733121151215"/>
+						</tablebody>
+						<tabledetails id="1733121151217">
+							<section id="1733121151219" label="明細">
+								<richtextviewer dataattribute="RELATEDRECTKT.problemcode_longdescription" id="1733121151221"/>
+								<blankline id="1733121151223"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr1code_longdescription" id="1733121151225"/>
+								<blankline id="1733121151227"/>
+								<richtextviewer dataattribute="RELATEDRECTKT.fr2code_longdescription" id="1733121151229"/>
+								<blankline id="1733121151232"/>
+							</section>
+							<table beanclass="psdi.webclient.beans.doclinks.DocLinksBean" collapsed="false" id="1733121151234" inputmode="readonly" label="附件" relationship="DOCLINKS">
+								<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="1733121151236">
+									<tablecol dataattribute="document" id="1733121151238" type="openurl" urlattribute="weburl"/>
+									<tablecol dataattribute="docinfo.description" id="1733121151240"/>
+								</tablebody>
+							</table>
+						</tabledetails>
+					</table>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+	</page>
+
+	<dialog beanclass="psdi.webclient.beans.common.ClassificationBean" id="searchmore" label="其他搜尋欄位">
+		<section id="qbe_grid2">
+			<sectionrow id="qbe_grid2_1">
+				<sectioncol id="qbe_grid2_1_1">
+					<section id="qbe_grid2_1_1_grid3" sigoption="ZZ_HID">
+						<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.SR" id="qbe_g1_1_1_grid3_1" inputmode="query"/>
+						<textbox applink="zz_asset" dataattribute="ZZ_EQ24" id="qbe_grid2_1_1_grid5_1" inputmode="query" lookup="asset" menutype="normal"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_2">
+					<section id="qbe_grid2_1_1_grid5">
+						<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.DESCRIPTION" id="qbe_grid2_1_1_grid5_2" inputmode="query" sigoption="ZZ_HID"/>
+						<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.RECEIVINGSITE" id="1635577081044" inputmode="query" lookup="zz_dept"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_3">
+					<section id="qbe_grid2_1_3_grid5" sigoption="ZZ_HID">
+						<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.VEHICLESTATUS" id="qbe_grid2_1_1_grid5_3" inputmode="query" lookup="valuelist"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<section id="qbe_date_s1" label="日期">
+			<sectionrow id="qbe_date_r1">
+				<sectioncol id="qbe_date_r1_c1">
+					<section id="qbe_date_r1_c1_s1">
+						<sectionrow id="qbe_date_s1_r1">
+							<sectioncol id="qbe_date_s1_r1_c1">
+								<section id="qbe_date_s1_r1_c1_s1">
+									<statictext align="center" id="qbe_date_s1_r1_c1_s1_st1"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r1_c2">
+								<section id="qbe_date_s1_r1_c2_s1">
+									<statictext align="center" id="qbe_date_s1_r1_c2_s1_st1" label="開始"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r1_c3">
+								<section id="qbe_date_s1_r1_c3_s1">
+									<statictext align="center" id="qbe_date_s1_r1_c3_s1_st1" label="結束"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r2" sigoption="ZZ_HID">
+							<sectioncol id="qbe_date_s1_r2_c1">
+								<section id="qbe_date_s1_r2_c1_s1">
+									<statictext id="qbe_date_s1_r2_c1_s1_t1" label="收容日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r2_c2">
+								<section id="qbe_date_s1_r2_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.CONTAINMENTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_5" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r2_c3">
+								<section id="qbe_date_s1_r2_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.CONTAINMENTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_6" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r10">
+							<sectioncol id="qbe_date_s1_r10_c1">
+								<section id="qbe_date_s1_r10_c1_s1">
+									<statictext id="qbe_date_s1_r10_c1_s1_t1" label="開工日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r10_c2">
+								<section id="qbe_date_s1_r10_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.STARTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_9" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r10_c3">
+								<section id="qbe_date_s1_r10_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.STARTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_10" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r3">
+							<sectioncol id="qbe_date_s1_r3_c1">
+								<section id="qbe_date_s1_r3_c1_s1">
+									<statictext id="qbe_date_s1_r3_c1_s1_t1" label="試車日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r3_c2">
+								<section id="qbe_date_s1_r3_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.TESTRUNDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_13" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r3_c3">
+								<section id="qbe_date_s1_r3_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.TESTRUNDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_14" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r4" sigoption="ZZ_HID">
+							<sectioncol id="qbe_date_s1_r4_c1">
+								<section id="qbe_date_s1_r4_c1_s1">
+									<statictext id="qbe_date_s1_r4_c1_s1_t1" label="檢修動態日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r4_c2">
+								<section id="qbe_date_s1_r4_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.VEHICLESTATUS" hidelabel="true" id="qbe_grid2_1_1_grid6_17" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r4_c3">
+								<section id="qbe_date_s1_r4_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.VEHICLESTATUS" hidelabel="true" id="qbe_grid2_1_1_grid6_18" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_date_r1_c2">
+					<section id="qbe_date_r1_c2_s1">
+						<sectionrow id="qbe_date_s1_r7">
+							<sectioncol id="qbe_date_s1_r7_c1">
+								<section id="qbe_date_s1_r7_c1_s1">
+									<statictext align="center" id="qbe_date_s1_r7_c1_s1_st1"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r7_c2">
+								<section id="qbe_date_s1_r7_c2_s1">
+									<statictext align="center" id="qbe_date_s1_r7_c2_s1_st1" label="開始"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r7_c3">
+								<section id="qbe_date_s1_r7_c3_s1">
+									<statictext align="center" id="qbe_date_s1_r7_c3_s1_st1" label="結束"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r9" sigoption="ZZ_HID">
+							<sectioncol id="qbe_date_s1_r9_c1">
+								<section id="qbe_date_s1_r9_c1_s1">
+									<statictext id="qbe_date_s1_r9_c1_s1_t1" label="進廠日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r9_c2">
+								<section id="qbe_date_s1_r9_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.ENTRYDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_7" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r9_c3">
+								<section id="qbe_date_s1_r9_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.ENTRYDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_8" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r8">
+							<sectioncol id="qbe_date_s1_r8_c1">
+								<section id="qbe_date_s1_r8_c1_s1">
+									<statictext id="qbe_date_s1_r8_c1_s1_t1" label="完工/出場日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r8_c2">
+								<section id="qbe_date_s1_r8_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.REPACOMPDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_11" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r8_c3">
+								<section id="qbe_date_s1_r8_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.REPACOMPDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_12" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r5">
+							<sectioncol id="qbe_date_s1_r5_c1">
+								<section id="qbe_date_s1_r5_c1_s1">
+									<statictext id="qbe_date_s1_r5_c1_s1_t1" label="交段日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r5_c2">
+								<section id="qbe_date_s1_r5_c2_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.DELIUNITDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_15" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r5_c3">
+								<section id="qbe_date_s1_r5_c3_s1">
+									<textbox dataattribute="ZZ_VEHICLE_DYNAMIC.DELIUNITDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_16" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="qbe_date_s1_r6" sigoption="ZZ_HID">
+							<sectioncol id="qbe_date_s1_r6_c1">
+								<section id="qbe_date_s1_r6_c1_s1">
+									<statictext id="qbe_date_s1_r6_c1_s1_t1" label="開單日期" span="right"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r6_c2">
+								<section id="qbe_date_s1_r6_c2_s1">
+									<textbox dataattribute="REPORTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_19" inputmode="query" lookup="datelookup" prepend="&gt;=" size="15"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="qbe_date_s1_r6_c3">
+								<section id="qbe_date_s1_r6_c3_s1">
+									<textbox dataattribute="REPORTDATE" hidelabel="true" id="qbe_grid2_1_1_grid6_20" inputmode="query" lookup="datelookup" prepend="&lt;=" size="15"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="qbe_grid5_1_1_grid6">
+			<pushbutton default="true" id="qbe_grid5_1_1_grid6_1" label="尋找" mxevent="dialogok"/>
+			<pushbutton id="qbe_restoreappdefault_button" label="還原應用程式預設值" mxevent="qbeclear"/>
+			<pushbutton id="qbe_revisebutton" label="校訂" menutype="SEARCHMOREREVISE" targetid="searchmore"/>
+			<pushbutton id="qbe_grid5_1_1_grid6_3" label="取消" mxevent="qbecancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="viewfollowup" label="檢視後續追蹤記錄">
+		<helpgrid id="viewfollowup_help" innerhtml="這些表格列出從目前摘記卷產生的「後續追蹤記錄」。"/>
+		<table id="viewfollowup_showlist1_table" inputmode="readonly" relationship="WORKORDER" startrow="0">
+			<tablebody displayrowsperpage="6" filterable="true" filterexpanded="true" id="viewfollowup_showlist1_table_tablebody">
+				<tablecol dataattribute="wonum" id="viewfollowup_showlist1_table_tablebody_1"/>
+				<tablecol dataattribute="woclass" id="viewfollowup_showlist1_table_tablebody_2"/>
+				<tablecol dataattribute="description" id="viewfollowup_showlist1_table_tablebody_3"/>
+				<tablecol dataattribute="status" id="viewfollowup_showlist1_table_tablebody_4"/>
+			</tablebody>
+		</table>
+		<table id="viewfollowup_showlist2_table" inputmode="readonly" relationship="TICKET" startrow="0">
+			<tablebody displayrowsperpage="6" filterable="true" filterexpanded="true" id="viewfollowup_showlist2_table_tablebody">
+				<tablecol dataattribute="ticketid" id="viewfollowup_showlist2_table_tablebody_1"/>
+				<tablecol dataattribute="class" id="viewfollowup_showlist2_table_tablebody_2"/>
+				<tablecol dataattribute="description" id="viewfollowup_showlist2_table_tablebody_3"/>
+				<tablecol dataattribute="status" id="viewfollowup_showlist2_table_tablebody_4"/>
+			</tablebody>
+		</table>
+		<buttongroup id="viewfollowup_2">
+			<pushbutton default="true" id="viewfollowup_2_1" label="確定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" id="searchbook" label="我的書籤" mboname="SR">
+		<table id="bookmarks_table" inputmode="readonly" label="服務申請" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" id="bookmarks_table_tablebody">
+				<tablecol dataattribute="ticketid" id="bookmarks_tablebody_1" mxevent="selectrecord" type="link"/>
+				<tablecol dataattribute="description" id="bookmarks_table_tablebody_2"/>
+				<tablecol filterable="false" id="bookmarks_table_tablebody_delete" mxevent="instantdelete" mxevent_desc="刪除" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<buttongroup id="bookmarks_2">
+			<pushbutton default="true" id="bookmarks_2_1" label="確定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.servicedesk.TkChangeStatusBean" id="list_status" label="變更狀態" relationship="TKCHANGESTATUS" savemode="ONUNLOAD">
+		<section id="list_changestatus_grid1_1_1_grid4">
+			<textbox dataattribute="memo" id="list_changestatus_grid1_1_1_grid4_3a" sigoption="MEMOABOVESTATUS"/>
+			<combobox dataattribute="status" id="list_changestatus_grid1_1_1_grid4_1"/>
+			<textbox dataattribute="asofdate" id="list_changestatus_grid1_1_1_grid4_2" lookup="datelookup"/>
+			<textbox dataattribute="memo" id="list_changestatus_grid1_1_1_grid4_3b" sigoption="MEMOBELOWSTATUS"/>
+		</section>
+		<buttongroup id="list_changestatus_2">
+			<pushbutton clickmessage="Status has been changed." default="true" id="list_changestatus_2_1" label="確定" mxevent="dialogok"/>
+			<pushbutton id="list_changestatus_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="viewhist" label="檢視歷程">
+		<table id="viewhist_viewhist_history_pStatustbl" inputmode="readonly" label="狀態歷程" orderby="changedate desc" relationship="TKSTATUS">
+			<tablebody displayrowsperpage="6" filterable="true" filterexpanded="false" id="viewhist_viewhist_history_pStatustbl_tablebody">
+				<tablecol dataattribute="status" id="viewhist_viewhist_history_pStatustbl_tablebody_1"/>
+				<tablecol dataattribute="changedate" id="viewhist_viewhist_history_pStatustbl_tablebody_2"/>
+				<tablecol dataattribute="changeby" id="viewhist_viewhist_history_pStatustbl_tablebody_3"/>
+				<tablecol dataattribute="memo" id="viewhist_viewhist_history_pStatustbl_tablebody_4"/>
+			</tablebody>
+		</table>
+		<table id="viewhist_viewhist_history_ownerStatustbl" inputmode="readonly" label="擁有權歷程" orderby="owndate desc" relationship="OWNERHISTORY">
+			<tablebody displayrowsperpage="6" filterable="true" filterexpanded="false" id="viewhist_viewhist_history_ownerStatustbl_tablebody">
+				<tablecol dataattribute="owndate" id="viewhist_viewhist_history_ownerStatustbl_tablebody_1"/>
+				<tablecol dataattribute="owner" id="viewhist_viewhist_history_ownerStatustbl_tablebody_2"/>
+				<tablecol dataattribute="ownergroup" id="viewhist_viewhist_history_ownerStatustbl_tablebody_3"/>
+				<tablecol dataattribute="ownerchangeby" id="viewhist_viewhist_history_ownerStatustbl_tablebody_4"/>
+			</tablebody>
+		</table>
+		<buttongroup id="viewhist_2">
+			<pushbutton default="true" id="viewhist_2_1" label="確定" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.common.ChangeStatusBean" id="STATUS" label="變更狀態" relationship="TKCHANGESTATUS" savemode="ONLOADUNLOAD">
+		<section border="true" datasrc="MAINRECORD" id="changestatus_grid1_1_1_grid3">
+			<multiparttextbox dataattribute="ticketid" descdataattribute="description" descinputmode="readonly" id="changestatus_grid1_1_1_grid3_1"/>
+			<multiparttextbox dataattribute="status" descdataattribute="statusdesc.description" descinputmode="readonly" id="changestatus_grid1_1_1_grid3_5"/>
+		</section>
+		<section id="changestatus_grid1_1_1_grid4">
+			<textbox dataattribute="memo" id="changestatus_grid1_1_1_grid4_3a" sigoption="MEMOABOVESTATUS"/>
+			<combobox dataattribute="status" id="changestatus_grid1_1_1_grid4_1"/>
+			<textbox dataattribute="asofdate" id="changestatus_grid1_1_1_grid4_2" lookup="datelookup"/>
+			<textbox dataattribute="memo" id="changestatus_grid1_1_1_grid4_3b" sigoption="MEMOBELOWSTATUS"/>
+		</section>
+		<buttongroup id="changestatus_2">
+			<pushbutton clickmessage="Status has been changed." default="true" id="changestatus_2_1" label="確定" mxevent="dialogok"/>
+			<pushbutton id="changestatus_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="duplicate" label="複製記錄">
+		<section border="true" id="duplicate_grid1">
+			<sectionrow id="duplicate_grid1_1">
+				<sectioncol id="duplicate_grid1_1_1">
+					<radiobuttongroup dataattribute="dupflag" hidelabel="true" id="duplicate_grid1_1_1_grid6"/>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="duplicate_1">
+			<pushbutton default="true" id="owner_1_1" label="確定" mxevent="DUPLICATECHECK"/>
+			<pushbutton id="owner_1_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<configurationblock id="datastore_configurationblock">
+	</configurationblock>
+</presentation>

@@ -8,6 +8,7 @@ import type {
   FieldArea,
   MaximoDataType,
 } from '../types';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Column name mappings from Chinese to English
@@ -186,13 +187,6 @@ export function parseExcelRow(row: Record<string, unknown>): SAFieldDefinition {
 }
 
 /**
- * Generate a unique ID based on timestamp
- */
-export function generateId(): string {
-  return String(Date.now());
-}
-
-/**
  * Generate field name when not provided
  */
 export function generateFieldName(
@@ -295,7 +289,7 @@ export class SAParser {
     // Dynamic import to avoid issues in test environment
     const XLSX = await import('xlsx');
 
-    const workbook = XLSX.readFile(filePath);
+    const workbook = XLSX.default.readFile(filePath);
 
     // Try to find the field definition sheet
     let sheetName: string | undefined = workbook.SheetNames.find(
@@ -311,7 +305,7 @@ export class SAParser {
     }
 
     const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet) as Record<
+    const rawData = XLSX.default.utils.sheet_to_json(worksheet) as Record<
       string,
       unknown
     >[];

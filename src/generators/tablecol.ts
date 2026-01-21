@@ -1,4 +1,5 @@
 import type { ProcessedField } from '../types';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Build XML attributes string from key-value pairs
@@ -36,8 +37,8 @@ export function generateTablecol(
     attrs.filterable = field.filterable ? 'true' : 'false';
   }
 
-  // Add ID
-  attrs.id = field.id;
+  // Add ID - generate unique ID for each element
+  attrs.id = generateId();
 
   // Add inputmode if readonly
   if (field.inputMode === 'readonly') {

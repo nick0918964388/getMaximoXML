@@ -1,6 +1,6 @@
 import type { ProcessedField } from '../types';
 import { generateTextbox } from '../generators';
-import { generateId } from '../parsers/sa-parser';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Generate search more dialog with searchable fields

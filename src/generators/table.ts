@@ -4,7 +4,7 @@ import {
   generateSelectRowTablecol,
   generateBookmarkTablecol,
 } from './tablecol';
-import { generateId } from '../parsers/sa-parser';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Generate a detail table XML element

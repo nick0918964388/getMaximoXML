@@ -26,7 +26,7 @@ describe('textbox generator', () => {
       const result = generateTextbox(field);
 
       expect(result).toContain('<textbox');
-      expect(result).toContain('id="1629195850121"');
+      expect(result).toMatch(/id="\d+"/);  // ID should be a numeric string
       expect(result).toContain('dataattribute="ZZ_EQ24"');
       expect(result).toContain('/>');
     });
@@ -200,7 +200,7 @@ describe('textbox generator', () => {
       const result = generateMultilineTextbox(field);
 
       expect(result).toContain('<multilinetextbox');
-      expect(result).toContain('id="1629174215932"');
+      expect(result).toMatch(/id="\d+"/);  // ID should be a numeric string
       expect(result).toContain('dataattribute="ZZ_VEHICLE_DYNAMIC.DESCRIPTION_LONGDESCRIPTION"');
       expect(result).toContain('label="原因說明"');
       expect(result).toContain('columns="45"');
@@ -231,7 +231,7 @@ describe('textbox generator', () => {
       const result = generateMultipartTextbox(field);
 
       expect(result).toContain('<multiparttextbox');
-      expect(result).toContain('id="1628245842927"');
+      expect(result).toMatch(/id="\d+"/);  // ID should be a numeric string
       expect(result).toContain('dataattribute="RECEIVINGSITE"');
       expect(result).toContain('descdataattribute="RECEIVINGSITE.DESCRIPTION"');
       expect(result).toContain('lookup="ZZ_DEPT"');

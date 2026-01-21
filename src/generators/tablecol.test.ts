@@ -26,7 +26,7 @@ describe('tablecol generator', () => {
       const result = generateTablecol(field, true);
 
       expect(result).toContain('<tablecol');
-      expect(result).toContain('id="1625826474803"');
+      expect(result).toMatch(/id="\d+"/);  // ID should be a numeric string
       expect(result).toContain('dataattribute="zz_eq24"');
       expect(result).toContain('filterable="true"');
       expect(result).toContain('sortable="true"');

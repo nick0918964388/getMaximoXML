@@ -1,4 +1,5 @@
 import type { ProcessedField } from '../types';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Build XML attributes string from key-value pairs
@@ -16,7 +17,7 @@ function buildAttributes(attrs: Record<string, string | undefined>): string {
 export function generateTextbox(field: ProcessedField): string {
   const attrs: Record<string, string | undefined> = {
     dataattribute: field.dataattribute,
-    id: field.id,
+    id: generateId(),
   };
 
   // Add optional attributes
@@ -63,7 +64,7 @@ export function generateMultilineTextbox(
   const attrs: Record<string, string | undefined> = {
     columns,
     dataattribute: field.dataattribute,
-    id: field.id,
+    id: generateId(),
   };
 
   if (field.label) {
@@ -89,7 +90,7 @@ export function generateMultipartTextbox(field: ProcessedField): string {
   const attrs: Record<string, string | undefined> = {
     dataattribute: field.dataattribute,
     descdataattribute: descDataattribute,
-    id: field.id,
+    id: generateId(),
   };
 
   if (field.applink) {

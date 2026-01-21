@@ -1,4 +1,5 @@
 import type { ProcessedField } from '../types';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Build XML attributes string from key-value pairs
@@ -16,7 +17,7 @@ function buildAttributes(attrs: Record<string, string | undefined>): string {
 export function generateCheckbox(field: ProcessedField): string {
   const attrs: Record<string, string | undefined> = {
     dataattribute: field.dataattribute,
-    id: field.id,
+    id: generateId(),
   };
 
   // Add label if provided

@@ -1,6 +1,6 @@
 import type { TabDefinition, ProcessedField } from '../types';
 import { generateSectionWithFields, generateTable } from '../generators';
-import { generateId } from '../parsers/sa-parser';
+import { generateId } from '../utils/id-generator';
 
 /**
  * Generate a form tab with header section and optional detail tables

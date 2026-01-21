@@ -26,7 +26,7 @@ describe('checkbox generator', () => {
       const result = generateCheckbox(field);
 
       expect(result).toContain('<checkbox');
-      expect(result).toContain('id="1748950219286"');
+      expect(result).toMatch(/id="\d+"/);  // ID should be a numeric string
       expect(result).toContain('dataattribute="SITEVISIT"');
       expect(result).toContain('label="再進廠"');
       expect(result).toContain('/>');
