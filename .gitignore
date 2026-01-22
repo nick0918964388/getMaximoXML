@@ -1,9 +1,23 @@
 node_modules/
 dist/
+build/
 *.log
 .DS_Store
 ~$*
+.env*
+.env.local
 
 # Generated output files
 /*.xml
 /*.sql
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
