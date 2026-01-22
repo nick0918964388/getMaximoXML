@@ -1,0 +1,380 @@
+'use client';
+
+import { SAFieldDefinition } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  FIELD_TYPES,
+  INPUT_MODES,
+  FIELD_AREAS,
+  MAXIMO_DATA_TYPES,
+  DEFAULT_LENGTHS,
+} from '@/lib/constants';
+
+interface FieldFormProps {
+  field: SAFieldDefinition | null;
+  open: boolean;
+  onClose: () => void;
+  onSave: (field: SAFieldDefinition) => void;
+}
+
+export function FieldForm({ field, open, onClose, onSave }: FieldFormProps) {
+  if (!field) return null;
+
+  const handleChange = (updates: Partial<SAFieldDefinition>) => {
+    onSave({ ...field, ...updates });
+  };
+
+  const handleDataTypeChange = (value: string) => {
+    const maxType = value as SAFieldDefinition['maxType'];
+    handleChange({
+      maxType,
+      length: DEFAULT_LENGTHS[maxType] || 100,
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDown}>
+        <DialogHeader>
+          <DialogTitle>編輯欄位：{field.label || '新欄位'}</DialogTitle>
+        </DialogHeader>
+
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="basic">基本</TabsTrigger>
+            <TabsTrigger value="display">顯示</TabsTrigger>
+            <TabsTrigger value="database">資料庫</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="label">標籤 *</Label>
+                <Input
+                  id="label"
+                  value={field.label}
+                  onChange={(e) => handleChange({ label: e.target.value })}
+                  placeholder="顯示標籤"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fieldName">欄位名稱</Label>
+                <Input
+                  id="fieldName"
+                  value={field.fieldName}
+                  onChange={(e) => handleChange({ fieldName: e.target.value })}
+                  placeholder="留空自動產生"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type">類型</Label>
+                <Select
+                  value={field.type}
+                  onValueChange={(value) =>
+                    handleChange({ type: value as SAFieldDefinition['type'] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="area">區域 *</Label>
+                <Select
+                  value={field.area}
+                  onValueChange={(value) =>
+                    handleChange({ area: value as SAFieldDefinition['area'] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_AREAS.map((area) => (
+                      <SelectItem key={area.value} value={area.value}>
+                        {area.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="inputMode">輸入模式</Label>
+                <Select
+                  value={field.inputMode}
+                  onValueChange={(value) =>
+                    handleChange({ inputMode: value as SAFieldDefinition['inputMode'] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INPUT_MODES.map((mode) => (
+                      <SelectItem key={mode.value} value={mode.value}>
+                        {mode.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tabName">頁籤名稱</Label>
+                <Input
+                  id="tabName"
+                  value={field.tabName}
+                  onChange={(e) => handleChange({ tabName: e.target.value })}
+                  placeholder="頁籤群組名稱"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="display" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lookup">查找表</Label>
+                <Input
+                  id="lookup"
+                  value={field.lookup}
+                  onChange={(e) => handleChange({ lookup: e.target.value })}
+                  placeholder="查找表名稱"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="relationship">關聯</Label>
+                <Input
+                  id="relationship"
+                  value={field.relationship}
+                  onChange={(e) => handleChange({ relationship: e.target.value })}
+                  placeholder="例如：asset, location"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="applink">應用程式連結</Label>
+                <Input
+                  id="applink"
+                  value={field.applink}
+                  onChange={(e) => handleChange({ applink: e.target.value })}
+                  placeholder="連結的應用程式"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="width">寬度</Label>
+                <Input
+                  id="width"
+                  value={field.width}
+                  onChange={(e) => handleChange({ width: e.target.value })}
+                  placeholder="顯示寬度"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="column">欄位</Label>
+                <Input
+                  id="column"
+                  type="number"
+                  value={field.column || ''}
+                  onChange={(e) => handleChange({ column: parseInt(e.target.value) || 0 })}
+                  placeholder="版面欄位 (0=自動)"
+                />
+              </div>
+            </div>
+
+            {/* 多部分文字框設定 */}
+            {field.type === 'multiparttextbox' && (
+              <div className="border rounded-md p-4 mt-4 space-y-4">
+                <h4 className="text-sm font-medium">多部分文字框設定</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="descDataattribute">第二部分欄位名稱</Label>
+                    <Input
+                      id="descDataattribute"
+                      value={field.descDataattribute}
+                      onChange={(e) => handleChange({ descDataattribute: e.target.value })}
+                      placeholder="例如：DESCRIPTION"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="descLabel">第二部分標籤</Label>
+                    <Input
+                      id="descLabel"
+                      value={field.descLabel}
+                      onChange={(e) => handleChange({ descLabel: e.target.value })}
+                      placeholder="例如：說明"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="descInputMode">第二部分輸入模式</Label>
+                    <Select
+                      value={field.descInputMode}
+                      onValueChange={(value) =>
+                        handleChange({ descInputMode: value as SAFieldDefinition['descInputMode'] })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INPUT_MODES.map((mode) => (
+                          <SelectItem key={mode.value} value={mode.value}>
+                            {mode.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  第一部分使用上方的「欄位名稱」和「標籤」設定
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="database" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="maxType">資料類型</Label>
+                <Select value={field.maxType} onValueChange={handleDataTypeChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MAXIMO_DATA_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="length">長度</Label>
+                <Input
+                  id="length"
+                  type="number"
+                  value={field.length}
+                  onChange={(e) => handleChange({ length: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scale">小數位數</Label>
+                <Input
+                  id="scale"
+                  type="number"
+                  value={field.scale}
+                  onChange={(e) => handleChange({ scale: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="defaultValue">預設值</Label>
+                <Input
+                  id="defaultValue"
+                  value={field.defaultValue}
+                  onChange={(e) => handleChange({ defaultValue: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">欄位標題</Label>
+                <Input
+                  id="title"
+                  value={field.title}
+                  onChange={(e) => handleChange({ title: e.target.value })}
+                  placeholder="資料庫欄位標題"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="objectName">物件名稱</Label>
+                <Input
+                  id="objectName"
+                  value={field.objectName}
+                  onChange={(e) => handleChange({ objectName: e.target.value })}
+                  placeholder="MBO 名稱 (如不同)"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-6 pt-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="dbRequired"
+                  checked={field.dbRequired}
+                  onCheckedChange={(checked) =>
+                    handleChange({ dbRequired: checked === true })
+                  }
+                />
+                <Label htmlFor="dbRequired">資料庫必填</Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="persistent"
+                  checked={field.persistent}
+                  onCheckedChange={(checked) =>
+                    handleChange({ persistent: checked === true })
+                  }
+                />
+                <Label htmlFor="persistent">持久化</Label>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            關閉
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
