@@ -53,9 +53,9 @@ echo -e "${YELLOW}[Deploy] Restarting PM2 application...${NC}"
 
 # 檢查應用是否已存在
 if pm2 list | grep -q "maximo-xml-generator"; then
-    pm2 restart ecosystem.config.js
+    pm2 restart ecosystem.config.cjs
 else
-    pm2 start ecosystem.config.js
+    pm2 start ecosystem.config.cjs
 fi
 
 if [ $? -ne 0 ]; then
