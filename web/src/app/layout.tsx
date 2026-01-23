@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "sonner";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -42,6 +43,7 @@ export default function RootLayout({
             </main>
           </SidebarInset>
         </SidebarProvider>
+        <Toaster position="top-center" duration={2000} />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 interface PreviewPanelProps {
   xmlContent: string;
@@ -24,6 +25,7 @@ export function PreviewPanel({
 
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
+    toast.success('已複製到剪貼簿');
   };
 
   return (
