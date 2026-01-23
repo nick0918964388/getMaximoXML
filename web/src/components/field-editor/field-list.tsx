@@ -175,6 +175,17 @@ export function FieldList({
     onFieldsChange(newFields);
   };
 
+  const handleCopyToTab = (index: number, targetTab: string) => {
+    // Deep copy the field and change its tabName
+    const newField: SAFieldDefinition = JSON.parse(JSON.stringify(fields[index]));
+    newField.tabName = targetTab;
+    // If it's a list field being copied to a tab, change area to header
+    if (newField.area === 'list') {
+      newField.area = 'header';
+    }
+    onFieldsChange([...fields, newField]);
+  };
+
   const handleEditDetails = (index: number) => {
     setEditingIndex(index);
   };
@@ -330,7 +341,8 @@ export function FieldList({
   };
 
   const renderFieldList = (
-    items: { field: SAFieldDefinition; originalIndex: number }[]
+    items: { field: SAFieldDefinition; originalIndex: number }[],
+    currentTab: string
   ) => (
     <div className="space-y-2">
       {items.length === 0 ? (
@@ -346,7 +358,10 @@ export function FieldList({
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
+            onCopyToTab={handleCopyToTab}
             onEditDetails={handleEditDetails}
+            tabNames={tabNames}
+            currentTab={currentTab}
             labelInputRef={(ref) => registerFieldInputRef(originalIndex, ref)}
           />
         ))
@@ -473,7 +488,7 @@ export function FieldList({
           </div>
           {renderFieldHeader()}
           <ScrollArea className="h-[300px] pr-4">
-            {renderFieldList(groupedFields.list)}
+            {renderFieldList(groupedFields.list, '_list')}
           </ScrollArea>
         </TabsContent>
 
@@ -529,7 +544,7 @@ export function FieldList({
                 </div>
                 {renderFieldHeader()}
                 <ScrollArea className="h-[200px] pr-4">
-                  {renderFieldList(tab.header)}
+                  {renderFieldList(tab.header, tabName)}
                 </ScrollArea>
               </div>
 
@@ -563,7 +578,7 @@ export function FieldList({
                         </Button>
                       </div>
                       {renderFieldHeader()}
-                      {renderFieldList(tab.detail.get(relationship)!)}
+                      {renderFieldList(tab.detail.get(relationship)!, tabName)}
                     </div>
                   ))
                 )}

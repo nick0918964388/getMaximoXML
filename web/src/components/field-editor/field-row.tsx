@@ -13,6 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { FIELD_TYPES, INPUT_MODES, FIELD_AREAS } from '@/lib/constants';
 
 interface FieldRowProps {
@@ -21,7 +27,10 @@ interface FieldRowProps {
   onUpdate: (index: number, updates: Partial<SAFieldDefinition>) => void;
   onDelete: (index: number) => void;
   onDuplicate: (index: number) => void;
+  onCopyToTab: (index: number, targetTab: string) => void;
   onEditDetails: (index: number) => void;
+  tabNames: string[];
+  currentTab: string;
   labelInputRef?: (ref: HTMLInputElement | null) => void;
 }
 
@@ -31,7 +40,10 @@ export function FieldRow({
   onUpdate,
   onDelete,
   onDuplicate,
+  onCopyToTab,
   onEditDetails,
+  tabNames,
+  currentTab,
   labelInputRef,
 }: FieldRowProps) {
   const [isTranslating, setIsTranslating] = useState(false);
@@ -204,6 +216,36 @@ export function FieldRow({
         >
           複製
         </Button>
+        {tabNames.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+              >
+                複製到
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {tabNames
+                .filter((tab) => tab !== currentTab)
+                .map((tab) => (
+                  <DropdownMenuItem
+                    key={tab}
+                    onClick={() => onCopyToTab(index, tab)}
+                  >
+                    {tab}
+                  </DropdownMenuItem>
+                ))}
+              {tabNames.filter((tab) => tab !== currentTab).length === 0 && (
+                <DropdownMenuItem disabled>
+                  沒有其他頁籤
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <Button
           variant="ghost"
           size="sm"
