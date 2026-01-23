@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Externalize sql.js to prevent bundling issues with WebAssembly
-  serverExternalPackages: ['sql.js'],
+  experimental: {
+    serverComponentsExternalPackages: ['sql.js'],
+  },
 
   webpack: (config, { isServer }) => {
     if (isServer) {
