@@ -2,13 +2,15 @@ module.exports = {
   apps: [{
     name: 'maximo-xml-generator',
     cwd: './web',
-    script: 'node_modules/.bin/next',
+    script: 'npm',
     args: 'start',
+    interpreter: 'none',
     env: {
       NODE_ENV: 'production',
       PORT: 3000
     },
     watch: false,
+    exec_mode: 'fork',
     instances: 1,
     autorestart: true,
     max_memory_restart: '1G',
