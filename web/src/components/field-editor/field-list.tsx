@@ -39,6 +39,8 @@ import {
 interface FieldListProps {
   fields: SAFieldDefinition[];
   onFieldsChange: (fields: SAFieldDefinition[]) => void;
+  activeTab?: string;
+  onActiveTabChange?: (tab: string) => void;
 }
 
 interface GroupedFields {
@@ -49,9 +51,24 @@ interface GroupedFields {
   }>;
 }
 
-export function FieldList({ fields, onFieldsChange }: FieldListProps) {
+export function FieldList({
+  fields,
+  onFieldsChange,
+  activeTab: controlledActiveTab,
+  onActiveTabChange,
+}: FieldListProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('_list');
+  const [internalActiveTab, setInternalActiveTab] = useState('_list');
+
+  // Use controlled or internal state
+  const activeTab = controlledActiveTab ?? internalActiveTab;
+  const setActiveTab = (tab: string) => {
+    if (onActiveTabChange) {
+      onActiveTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
   const [newTabName, setNewTabName] = useState('');
   const [showNewTabInput, setShowNewTabInput] = useState(false);
   const [deleteTabName, setDeleteTabName] = useState<string | null>(null);

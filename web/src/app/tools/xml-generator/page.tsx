@@ -48,6 +48,7 @@ export default function XmlGeneratorPage() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [activeTab, setActiveTab] = useState('editor');
+  const [fieldEditorTab, setFieldEditorTab] = useState('_list');
   const [restoreDraftDialogOpen, setRestoreDraftDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -352,7 +353,12 @@ export default function XmlGeneratorPage() {
                   <CardTitle className="text-lg">欄位定義</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <FieldList fields={fields} onFieldsChange={setFields} />
+                  <FieldList
+                    fields={fields}
+                    onFieldsChange={setFields}
+                    activeTab={fieldEditorTab}
+                    onActiveTabChange={setFieldEditorTab}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
