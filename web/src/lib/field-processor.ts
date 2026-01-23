@@ -5,16 +5,28 @@ import type {
   TabDefinition
 } from './types';
 import { generateId } from './utils/id-generator';
+import {
+  translateToFieldName,
+  translateToFieldNameSync,
+  containsChinese as checkChinese,
+} from './translation-service';
 
 /**
- * Generate field name from label if not provided
- * Only uses English characters - Chinese characters are removed
- * Returns empty string if no valid characters found (user must provide manually)
+ * Generate field name from label if not provided (synchronous)
+ * For English labels: converts to uppercase with underscores
+ * For Chinese labels: uses dictionary lookup (returns empty if not found)
+ * Returns empty string if no valid characters found
  */
 export function generateFieldName(label: string): string {
   if (!label) return '';
 
-  // Remove Chinese characters and other non-alphanumeric characters
+  // Try synchronous translation (dictionary + cache)
+  const translated = translateToFieldNameSync(label);
+  if (translated !== null) {
+    return translated;
+  }
+
+  // Fallback: Remove Chinese characters and other non-alphanumeric characters
   // Only keep A-Z, a-z, 0-9
   const fieldName = label
     .toUpperCase()
@@ -28,6 +40,20 @@ export function generateFieldName(label: string): string {
   // Prefix with ZZ_ for custom fields
   return `ZZ_${fieldName}`;
 }
+
+/**
+ * Generate field name from label asynchronously
+ * Uses dictionary first, then Google Translate API for Chinese labels
+ */
+export async function generateFieldNameAsync(label: string): Promise<string> {
+  if (!label) return '';
+
+  // Use translation service (handles both dictionary and API)
+  return translateToFieldName(label);
+}
+
+// Re-export for convenience
+export { translateToFieldNameSync, translateToFieldName, checkChinese as containsChineseChars };
 
 /**
  * Process a single field definition
