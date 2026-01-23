@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Settings, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Settings } from 'lucide-react';
 import { DialogDetailTableEditor } from './dialog-detail-table';
 import { FieldForm } from '@/components/field-editor/field-form';
 import {
@@ -42,7 +42,6 @@ export function DialogForm({ dialog, onDialogChange }: DialogFormProps) {
   const [activeTab, setActiveTab] = useState('basic');
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
   const [editingFieldType, setEditingFieldType] = useState<'header' | 'detail'>('header');
-  const [editingDetailTableIndex, setEditingDetailTableIndex] = useState<number | null>(null);
 
   const handleChange = (updates: Partial<DialogTemplate>) => {
     onDialogChange({ ...dialog, ...updates });
