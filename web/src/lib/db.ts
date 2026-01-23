@@ -46,13 +46,24 @@ export async function getDb(dbPath: string = DEFAULT_DB_PATH): Promise<Database>
 
   // Initialize SQL.js with the WASM file from node_modules
   const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
-  const wasmBinary = fs.readFileSync(wasmPath);
+  const wasmBuffer = fs.readFileSync(wasmPath);
+  // Convert Buffer to ArrayBuffer for sql.js compatibility
+  const wasmBinary = wasmBuffer.buffer.slice(
+    wasmBuffer.byteOffset,
+    wasmBuffer.byteOffset + wasmBuffer.byteLength
+  ) as ArrayBuffer;
   const SQL = await initSqlJs({ wasmBinary });
 
   // Load existing database or create new one
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
+    // Convert Buffer to Uint8Array for sql.js compatibility
+    const uint8Array = new Uint8Array(
+      fileBuffer.buffer,
+      fileBuffer.byteOffset,
+      fileBuffer.byteLength
+    );
+    db = new SQL.Database(uint8Array);
   } else {
     // Ensure directory exists
     const dir = path.dirname(dbPath);
