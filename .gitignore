@@ -21,3 +21,5 @@ coverage/
 # Next.js
 .next/
 out/
+
+*:Zone.Identifier
