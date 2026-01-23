@@ -67,7 +67,7 @@ fi
 pm2 save
 
 echo -e "${GREEN}[Deploy] Deployment completed successfully!${NC}"
-echo -e "${GREEN}[Deploy] Application is running at http://localhost:3000${NC}"
+echo -e "${GREEN}[Deploy] Application is running at http://localhost:3002${NC}"
 
 # 顯示應用狀態
 pm2 status
