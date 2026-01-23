@@ -59,6 +59,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.name !== undefined) updates.name = body.name;
     if (body.metadata !== undefined) updates.metadata = body.metadata;
     if (body.fields !== undefined) updates.fields = body.fields;
+    if (body.detailTableConfigs !== undefined) updates.detailTableConfigs = body.detailTableConfigs;
+    if (body.dialogTemplates !== undefined) updates.dialogTemplates = body.dialogTemplates;
 
     updateProject(id, updates);
 

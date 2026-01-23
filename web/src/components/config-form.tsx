@@ -82,6 +82,16 @@ export function ConfigForm({ metadata, onMetadataChange }: ConfigFormProps) {
               placeholder="例如：STATUS != 'CLOSED'"
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="beanclass">Bean Class</Label>
+            <Input
+              id="beanclass"
+              value={metadata.beanclass}
+              onChange={(e) => handleChange({ beanclass: e.target.value })}
+              placeholder="例如：psdi.webclient.beans.MyAppBean"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mt-4 pt-4 border-t">

@@ -63,6 +63,8 @@ describe('storage', () => {
           name: 'Test Project',
           metadata: DEFAULT_METADATA,
           fields: [],
+          detailTableConfigs: {},
+          dialogTemplates: [],
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
         },
@@ -154,6 +156,8 @@ describe('storage', () => {
         name: 'Test Project',
         metadata: DEFAULT_METADATA,
         fields: [],
+        detailTableConfigs: {},
+        dialogTemplates: [],
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
@@ -205,6 +209,8 @@ describe('storage', () => {
         name: 'Test Project',
         metadata: DEFAULT_METADATA,
         fields: [],
+        detailTableConfigs: {},
+        dialogTemplates: [],
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };

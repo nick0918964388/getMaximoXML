@@ -155,6 +155,60 @@ export interface ApplicationMetadata {
   whereClause: string;
   /** Whether the MBO is a standard Maximo object (e.g., SR, WORKORDER, ASSET) */
   isStandardObject: boolean;
+  /** Bean class for presentation tag */
+  beanclass: string;
+}
+
+/**
+ * Detail table configuration (with beanclass)
+ */
+export interface DetailTableConfig {
+  /** Relationship name */
+  relationship: string;
+  /** Table label */
+  label: string;
+  /** Order by clause */
+  orderBy: string;
+  /** Bean class for table */
+  beanclass: string;
+}
+
+/**
+ * Dialog detail table configuration
+ */
+export interface DialogDetailTable {
+  /** Relationship name */
+  relationship: string;
+  /** Table label */
+  label: string;
+  /** Order by clause */
+  orderBy: string;
+  /** Bean class for table */
+  beanclass: string;
+  /** Fields in this detail table */
+  fields: SAFieldDefinition[];
+}
+
+/**
+ * Dialog template definition
+ */
+export interface DialogTemplate {
+  /** Unique identifier */
+  id: string;
+  /** Dialog ID for XML */
+  dialogId: string;
+  /** Dialog title/label */
+  label: string;
+  /** Bean class for dialog */
+  beanclass: string;
+  /** MBO name (if using MBO directly) */
+  mboName: string;
+  /** Relationship (alternative to MBO) */
+  relationship: string;
+  /** Header fields */
+  headerFields: SAFieldDefinition[];
+  /** Detail tables */
+  detailTables: DialogDetailTable[];
 }
 
 /**
@@ -169,6 +223,10 @@ export interface SavedProject {
   metadata: ApplicationMetadata;
   /** Field definitions */
   fields: SAFieldDefinition[];
+  /** Detail table configurations (key = tabName:relationship) */
+  detailTableConfigs: Record<string, DetailTableConfig>;
+  /** Dialog templates */
+  dialogTemplates: DialogTemplate[];
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */
@@ -216,4 +274,40 @@ export const DEFAULT_METADATA: ApplicationMetadata = {
   orderBy: '',
   whereClause: '',
   isStandardObject: true,
+  beanclass: '',
+};
+
+/**
+ * Default detail table config
+ */
+export const DEFAULT_DETAIL_TABLE_CONFIG: DetailTableConfig = {
+  relationship: '',
+  label: '',
+  orderBy: '',
+  beanclass: '',
+};
+
+/**
+ * Default dialog detail table
+ */
+export const DEFAULT_DIALOG_DETAIL_TABLE: DialogDetailTable = {
+  relationship: '',
+  label: '',
+  orderBy: '',
+  beanclass: '',
+  fields: [],
+};
+
+/**
+ * Default dialog template
+ */
+export const DEFAULT_DIALOG_TEMPLATE: DialogTemplate = {
+  id: '',
+  dialogId: '',
+  label: '',
+  beanclass: '',
+  mboName: '',
+  relationship: '',
+  headerFields: [],
+  detailTables: [],
 };

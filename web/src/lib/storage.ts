@@ -1,4 +1,4 @@
-import type { SavedProject, SAFieldDefinition, ApplicationMetadata } from './types';
+import type { SavedProject, SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate } from './types';
 
 const USERNAME_KEY = 'maximo-xml-generator-username';
 
@@ -54,7 +54,9 @@ export async function saveProject(
   metadata: ApplicationMetadata,
   fields: SAFieldDefinition[],
   existingId?: string,
-  username?: string
+  username?: string,
+  detailTableConfigs: Record<string, DetailTableConfig> = {},
+  dialogTemplates: DialogTemplate[] = []
 ): Promise<SavedProject | null> {
   const user = username || getUsername();
   if (!user) return null;
@@ -65,7 +67,7 @@ export async function saveProject(
       const response = await fetch(`/api/projects/${existingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, metadata, fields }),
+        body: JSON.stringify({ name, metadata, fields, detailTableConfigs, dialogTemplates }),
       });
 
       if (!response.ok) return null;
@@ -81,6 +83,8 @@ export async function saveProject(
         name,
         metadata,
         fields,
+        detailTableConfigs,
+        dialogTemplates,
       }),
     });
 
@@ -151,6 +155,8 @@ export async function importProject(json: string, username?: string): Promise<Sa
         name: `${project.name} (Imported)`,
         metadata: project.metadata,
         fields: project.fields,
+        detailTableConfigs: project.detailTableConfigs || {},
+        dialogTemplates: project.dialogTemplates || [],
       }),
     });
 

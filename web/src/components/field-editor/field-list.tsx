@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { SAFieldDefinition, DEFAULT_FIELD } from '@/lib/types';
+import { SAFieldDefinition, DEFAULT_FIELD, DetailTableConfig, DEFAULT_DETAIL_TABLE_CONFIG } from '@/lib/types';
+import { DetailTableConfigDialog } from './detail-table-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,7 @@ import { FieldForm } from './field-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,8 @@ interface FieldListProps {
   onFieldsChange: (fields: SAFieldDefinition[]) => void;
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
+  detailTableConfigs?: Record<string, DetailTableConfig>;
+  onDetailTableConfigsChange?: (configs: Record<string, DetailTableConfig>) => void;
 }
 
 interface GroupedFields {
@@ -56,9 +59,16 @@ export function FieldList({
   onFieldsChange,
   activeTab: controlledActiveTab,
   onActiveTabChange,
+  detailTableConfigs = {},
+  onDetailTableConfigsChange,
 }: FieldListProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState('_list');
+
+  // Detail table config dialog state
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [configDialogTabName, setConfigDialogTabName] = useState('');
+  const [configDialogRelationship, setConfigDialogRelationship] = useState('');
 
   // Use controlled or internal state
   const activeTab = controlledActiveTab ?? internalActiveTab;
@@ -319,6 +329,30 @@ export function FieldList({
     setActiveTab(newName);
   };
 
+  // Detail table config handlers
+  const getDetailTableConfigKey = (tabName: string, relationship: string) => `${tabName}:${relationship}`;
+
+  const handleOpenDetailTableConfig = (tabName: string, relationship: string) => {
+    setConfigDialogTabName(tabName);
+    setConfigDialogRelationship(relationship);
+    setConfigDialogOpen(true);
+  };
+
+  const handleSaveDetailTableConfig = (config: DetailTableConfig) => {
+    if (onDetailTableConfigsChange) {
+      const key = getDetailTableConfigKey(configDialogTabName, configDialogRelationship);
+      onDetailTableConfigsChange({
+        ...detailTableConfigs,
+        [key]: config,
+      });
+    }
+  };
+
+  const getDetailTableConfig = (tabName: string, relationship: string): DetailTableConfig => {
+    const key = getDetailTableConfigKey(tabName, relationship);
+    return detailTableConfigs[key] || { ...DEFAULT_DETAIL_TABLE_CONFIG, relationship };
+  };
+
   const renderFieldHeader = () => (
     <div className="grid grid-cols-12 gap-2 px-2 text-sm font-medium text-muted-foreground mb-2">
       <div className="col-span-1 text-center">#</div>
@@ -562,25 +596,51 @@ export function FieldList({
                     尚無明細表格。新增明細欄位並設定「關聯」來建立表格。
                   </div>
                 ) : (
-                  relationships.map((relationship) => (
-                    <div key={relationship} className="border rounded-md p-4 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Badge variant="outline" className="text-sm">
-                          關聯: {relationship}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleAdd('detail', tabName, relationship)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          新增欄位
-                        </Button>
+                  relationships.map((relationship) => {
+                    const config = getDetailTableConfig(tabName, relationship);
+                    const hasConfig = config.label || config.orderBy || config.beanclass;
+                    return (
+                      <div key={relationship} className="border rounded-md p-4 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-sm">
+                              關聯: {relationship}
+                            </Badge>
+                            {config.label && (
+                              <Badge variant="secondary" className="text-xs">
+                                標題: {config.label}
+                              </Badge>
+                            )}
+                            {config.beanclass && (
+                              <Badge variant="secondary" className="text-xs">
+                                Bean
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenDetailTableConfig(tabName, relationship)}
+                              title="表格設定"
+                            >
+                              <Settings className={`h-4 w-4 ${hasConfig ? 'text-primary' : ''}`} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleAdd('detail', tabName, relationship)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              新增欄位
+                            </Button>
+                          </div>
+                        </div>
+                        {renderFieldHeader()}
+                        {renderFieldList(tab.detail.get(relationship)!, tabName)}
                       </div>
-                      {renderFieldHeader()}
-                      {renderFieldList(tab.detail.get(relationship)!, tabName)}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </TabsContent>
@@ -661,6 +721,15 @@ export function FieldList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Detail Table Config Dialog */}
+      <DetailTableConfigDialog
+        open={configDialogOpen}
+        onClose={() => setConfigDialogOpen(false)}
+        config={getDetailTableConfig(configDialogTabName, configDialogRelationship)}
+        onSave={handleSaveDetailTableConfig}
+        relationship={configDialogRelationship}
+      />
     </div>
   );
 }

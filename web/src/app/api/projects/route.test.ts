@@ -3,8 +3,31 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GET, POST } from './route';
 import { getDb, closeDb, insertProject } from '@/lib/db';
+import { DEFAULT_METADATA, DEFAULT_FIELD } from '@/lib/types';
 
 const TEST_DB_PATH = path.join(process.cwd(), 'data', 'test-api-projects.db');
+
+// Helper to create test metadata
+const createTestMetadata = (overrides = {}) => ({
+  ...DEFAULT_METADATA,
+  id: 'APP1',
+  keyAttribute: 'APPID',
+  ...overrides,
+});
+
+// Helper to create test project for insert
+const createTestProject = (overrides: Record<string, unknown> = {}) => ({
+  id: 'project-1',
+  username: 'testuser',
+  name: 'Test Project',
+  metadata: createTestMetadata(),
+  fields: [],
+  detailTableConfigs: {},
+  dialogTemplates: [],
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
 
 // Mock getDb to use test database
 vi.mock('@/lib/db', async () => {
@@ -43,25 +66,18 @@ describe('API /api/projects', () => {
     });
 
     it('should return projects for specified username', async () => {
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-1',
         username: 'testuser',
         name: 'Test Project',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-2',
         username: 'otheruser',
         name: 'Other Project',
-        metadata: { id: 'APP2', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+        metadata: createTestMetadata({ id: 'APP2' }),
+      }));
 
       const request = new Request('http://localhost:3000/api/projects?username=testuser');
       const response = await GET(request);
@@ -87,8 +103,10 @@ describe('API /api/projects', () => {
       const projectData = {
         username: 'testuser',
         name: 'New Project',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [{ fieldName: 'FIELD1', label: 'Field 1' }],
+        metadata: createTestMetadata(),
+        fields: [{ ...DEFAULT_FIELD, fieldName: 'FIELD1', label: 'Field 1' }],
+        detailTableConfigs: {},
+        dialogTemplates: [],
       };
 
       const request = new Request('http://localhost:3000/api/projects', {

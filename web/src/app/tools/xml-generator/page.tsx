@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { SAFieldDefinition, ApplicationMetadata, DEFAULT_METADATA, SavedProject } from '@/lib/types';
+import { SAFieldDefinition, ApplicationMetadata, DEFAULT_METADATA, SavedProject, DetailTableConfig, DialogTemplate } from '@/lib/types';
 import { processFields } from '@/lib/field-processor';
 import { generateApplication } from '@/lib/assemblers';
 import { generateAllSQL } from '@/lib/generators';
@@ -12,6 +12,7 @@ import { useAutoSave, getDraft, clearDraft } from '@/hooks';
 
 import { FieldList } from '@/components/field-editor';
 import { ConfigForm } from '@/components/config-form';
+import { DialogEditor } from '@/components/dialog-editor';
 import { PreviewPanel } from '@/components/preview-panel';
 import { HistoryList } from '@/components/history-list';
 import { UsernameDialog } from '@/components/username-dialog';
@@ -44,6 +45,8 @@ import { User } from 'lucide-react';
 export default function XmlGeneratorPage() {
   const [fields, setFields] = useState<SAFieldDefinition[]>([]);
   const [metadata, setMetadata] = useState<ApplicationMetadata>(DEFAULT_METADATA);
+  const [detailTableConfigs, setDetailTableConfigs] = useState<Record<string, DetailTableConfig>>({});
+  const [dialogTemplates, setDialogTemplates] = useState<DialogTemplate[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -121,6 +124,8 @@ export default function XmlGeneratorPage() {
   const { status: autoSaveStatus, lastSavedAt } = useAutoSave({
     fields,
     metadata,
+    detailTableConfigs,
+    dialogTemplates,
     projectId: currentProjectId,
     projectName,
     enabled: true,
@@ -142,6 +147,8 @@ export default function XmlGeneratorPage() {
     if (draft) {
       setFields(draft.fields);
       setMetadata(draft.metadata);
+      setDetailTableConfigs(draft.detailTableConfigs || {});
+      setDialogTemplates(draft.dialogTemplates || []);
       setCurrentProjectId(draft.projectId);
       setProjectName(draft.projectName);
     }
@@ -181,8 +188,8 @@ export default function XmlGeneratorPage() {
       // Process fields into application definition
       const appDef = processFields(fields);
 
-      // Generate XML
-      const xml = generateApplication(appDef, metadata);
+      // Generate XML with detail table configs and dialog templates
+      const xml = generateApplication(appDef, metadata, detailTableConfigs, dialogTemplates);
 
       // Collect all processed fields for SQL generation
       const allProcessedFields = [
@@ -201,7 +208,7 @@ export default function XmlGeneratorPage() {
       console.error('Generation error:', error);
       return { xmlContent: '', sqlContent: '' };
     }
-  }, [fields, metadata]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates]);
 
   // Download handlers
   const handleDownloadXml = useCallback(() => {
@@ -237,7 +244,15 @@ export default function XmlGeneratorPage() {
 
     setIsSaving(true);
     try {
-      const saved = await saveProject(projectName, metadata, fields, currentProjectId || undefined, username);
+      const saved = await saveProject(
+        projectName,
+        metadata,
+        fields,
+        currentProjectId || undefined,
+        username,
+        detailTableConfigs,
+        dialogTemplates
+      );
       if (saved) {
         setCurrentProjectId(saved.id);
         setSaveDialogOpen(false);
@@ -255,6 +270,8 @@ export default function XmlGeneratorPage() {
   const handleLoadProject = (project: SavedProject) => {
     setFields(project.fields);
     setMetadata(project.metadata);
+    setDetailTableConfigs(project.detailTableConfigs || {});
+    setDialogTemplates(project.dialogTemplates || []);
     setCurrentProjectId(project.id);
     setProjectName(project.name);
     setActiveTab('editor');
@@ -264,6 +281,8 @@ export default function XmlGeneratorPage() {
   const handleNewProject = () => {
     setFields([]);
     setMetadata(DEFAULT_METADATA);
+    setDetailTableConfigs({});
+    setDialogTemplates([]);
     setCurrentProjectId(null);
     setProjectName('');
     clearDraft();
@@ -339,6 +358,7 @@ export default function XmlGeneratorPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="editor">欄位編輯器</TabsTrigger>
+              <TabsTrigger value="dialogs">Dialog 設定</TabsTrigger>
               <TabsTrigger value="preview">預覽與下載</TabsTrigger>
               <TabsTrigger value="history">歷史紀錄</TabsTrigger>
             </TabsList>
@@ -358,9 +378,18 @@ export default function XmlGeneratorPage() {
                     onFieldsChange={setFields}
                     activeTab={fieldEditorTab}
                     onActiveTabChange={setFieldEditorTab}
+                    detailTableConfigs={detailTableConfigs}
+                    onDetailTableConfigsChange={setDetailTableConfigs}
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="dialogs">
+              <DialogEditor
+                dialogs={dialogTemplates}
+                onDialogsChange={setDialogTemplates}
+              />
             </TabsContent>
 
             <TabsContent value="preview">

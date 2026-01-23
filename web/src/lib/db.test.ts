@@ -1,9 +1,38 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_METADATA, DEFAULT_FIELD } from './types';
 
 // Mock the database path for testing
 const TEST_DB_PATH = path.join(process.cwd(), 'data', 'test-projects.db');
+
+// Helper to create test metadata
+const createTestMetadata = (overrides = {}) => ({
+  ...DEFAULT_METADATA,
+  id: 'APP1',
+  keyAttribute: 'APPID',
+  ...overrides,
+});
+
+// Helper to create test field
+const createTestField = (overrides = {}) => ({
+  ...DEFAULT_FIELD,
+  ...overrides,
+});
+
+// Helper to create test project
+const createTestProject = (overrides: Record<string, unknown> = {}) => ({
+  id: 'test-project-1',
+  username: 'testuser',
+  name: 'Test Project',
+  metadata: createTestMetadata(),
+  fields: [],
+  detailTableConfigs: {},
+  dialogTemplates: [],
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
 
 describe('db', () => {
   beforeEach(() => {
@@ -82,15 +111,9 @@ describe('db', () => {
 
       await getDb(TEST_DB_PATH);
 
-      const project = {
-        id: 'test-project-1',
-        username: 'testuser',
-        name: 'Test Project',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [{ fieldName: 'FIELD1', label: 'Field 1' }],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      };
+      const project = createTestProject({
+        fields: [createTestField({ fieldName: 'FIELD1', label: 'Field 1' })],
+      });
 
       insertProject(project);
 
@@ -111,35 +134,32 @@ describe('db', () => {
 
       await getDb(TEST_DB_PATH);
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-1',
         username: 'user1',
         name: 'User1 Project 1',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
+        metadata: createTestMetadata({ id: 'APP1' }),
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-2',
         username: 'user1',
         name: 'User1 Project 2',
-        metadata: { id: 'APP2', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
+        metadata: createTestMetadata({ id: 'APP2' }),
         createdAt: '2024-01-02T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z',
-      });
+      }));
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-3',
         username: 'user2',
         name: 'User2 Project',
-        metadata: { id: 'APP3', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
+        metadata: createTestMetadata({ id: 'APP3' }),
         createdAt: '2024-01-03T00:00:00.000Z',
         updatedAt: '2024-01-03T00:00:00.000Z',
-      });
+      }));
 
       const user1Projects = getProjectsByUsername('user1');
       expect(user1Projects.length).toBe(2);
@@ -158,19 +178,15 @@ describe('db', () => {
 
       await getDb(TEST_DB_PATH);
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-1',
         username: 'user1',
         name: 'Original Name',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
       updateProject('project-1', {
         name: 'Updated Name',
-        fields: [{ fieldName: 'NEW_FIELD', label: 'New Field' }],
+        fields: [createTestField({ fieldName: 'NEW_FIELD', label: 'New Field' })],
         updatedAt: '2024-01-02T00:00:00.000Z',
       });
 
@@ -187,15 +203,11 @@ describe('db', () => {
 
       await getDb(TEST_DB_PATH);
 
-      insertProject({
+      insertProject(createTestProject({
         id: 'project-1',
         username: 'user1',
         name: 'To Delete',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
       expect(getProjectById('project-1')).toBeDefined();
 

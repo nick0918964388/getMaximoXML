@@ -3,8 +3,31 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GET, PUT, DELETE } from './route';
 import { getDb, closeDb, insertProject } from '@/lib/db';
+import { DEFAULT_METADATA, DEFAULT_FIELD } from '@/lib/types';
 
 const TEST_DB_PATH = path.join(process.cwd(), 'data', 'test-api-project-id.db');
+
+// Helper to create test metadata
+const createTestMetadata = (overrides = {}) => ({
+  ...DEFAULT_METADATA,
+  id: 'APP1',
+  keyAttribute: 'APPID',
+  ...overrides,
+});
+
+// Helper to create test project for insert
+const createTestProject = (overrides: Record<string, unknown> = {}) => ({
+  id: 'project-123',
+  username: 'testuser',
+  name: 'Test Project',
+  metadata: createTestMetadata(),
+  fields: [],
+  detailTableConfigs: {},
+  dialogTemplates: [],
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
 
 // Mock getDb to use test database
 vi.mock('@/lib/db', async () => {
@@ -34,15 +57,9 @@ describe('API /api/projects/[id]', () => {
 
   describe('GET /api/projects/[id]', () => {
     it('should return a project by ID', async () => {
-      insertProject({
-        id: 'project-123',
-        username: 'testuser',
-        name: 'Test Project',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [{ fieldName: 'FIELD1', label: 'Field 1' }],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      insertProject(createTestProject({
+        fields: [{ ...DEFAULT_FIELD, fieldName: 'FIELD1', label: 'Field 1' }],
+      }));
 
       const request = new Request('http://localhost:3000/api/projects/project-123');
       const response = await GET(request, { params: Promise.resolve({ id: 'project-123' }) });
@@ -65,19 +82,13 @@ describe('API /api/projects/[id]', () => {
 
   describe('PUT /api/projects/[id]', () => {
     it('should update a project', async () => {
-      insertProject({
-        id: 'project-123',
-        username: 'testuser',
+      insertProject(createTestProject({
         name: 'Original Name',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
       const updateData = {
         name: 'Updated Name',
-        fields: [{ fieldName: 'NEW_FIELD', label: 'New Field' }],
+        fields: [{ ...DEFAULT_FIELD, fieldName: 'NEW_FIELD', label: 'New Field' }],
       };
 
       const request = new Request('http://localhost:3000/api/projects/project-123', {
@@ -111,15 +122,9 @@ describe('API /api/projects/[id]', () => {
 
   describe('DELETE /api/projects/[id]', () => {
     it('should delete a project', async () => {
-      insertProject({
-        id: 'project-123',
-        username: 'testuser',
+      insertProject(createTestProject({
         name: 'To Delete',
-        metadata: { id: 'APP1', keyAttribute: 'APPID', mboName: 'SR', version: '7.6.1.2', orderBy: '', whereClause: '', isStandardObject: true },
-        fields: [],
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      });
+      }));
 
       const request = new Request('http://localhost:3000/api/projects/project-123', {
         method: 'DELETE',

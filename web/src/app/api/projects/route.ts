@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, name, metadata, fields } = body;
+    const { username, name, metadata, fields, detailTableConfigs = {}, dialogTemplates = [] } = body;
 
     if (!username || !name || !metadata || !fields) {
       return NextResponse.json(
@@ -55,6 +55,8 @@ export async function POST(request: Request) {
       name,
       metadata,
       fields,
+      detailTableConfigs,
+      dialogTemplates,
       createdAt: now,
       updatedAt: now,
     };

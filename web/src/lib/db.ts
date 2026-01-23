@@ -1,7 +1,7 @@
 import initSqlJs, { Database } from 'sql.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ApplicationMetadata, SAFieldDefinition } from './types';
+import type { ApplicationMetadata, SAFieldDefinition, DetailTableConfig, DialogTemplate } from './types';
 
 // Database project with username
 export interface DbProject {
@@ -10,6 +10,8 @@ export interface DbProject {
   name: string;
   metadata: ApplicationMetadata;
   fields: SAFieldDefinition[];
+  detailTableConfigs: Record<string, DetailTableConfig>;
+  dialogTemplates: DialogTemplate[];
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +23,8 @@ interface DbProjectRow {
   name: string;
   metadata: string; // JSON
   fields: string;   // JSON
+  detail_table_configs: string | null; // JSON
+  dialog_templates: string | null;     // JSON
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +99,8 @@ function initSchema(database: Database): void {
       name TEXT NOT NULL,
       metadata TEXT NOT NULL,
       fields TEXT NOT NULL,
+      detail_table_configs TEXT,
+      dialog_templates TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
@@ -103,6 +109,19 @@ function initSchema(database: Database): void {
   database.run(`
     CREATE INDEX IF NOT EXISTS idx_projects_username ON projects(username)
   `);
+
+  // Add new columns if they don't exist (migration for existing databases)
+  try {
+    database.run(`ALTER TABLE projects ADD COLUMN detail_table_configs TEXT`);
+  } catch {
+    // Column already exists
+  }
+
+  try {
+    database.run(`ALTER TABLE projects ADD COLUMN dialog_templates TEXT`);
+  } catch {
+    // Column already exists
+  }
 }
 
 /**
@@ -141,6 +160,8 @@ function rowToProject(row: DbProjectRow): DbProject {
     name: row.name,
     metadata: JSON.parse(row.metadata),
     fields: JSON.parse(row.fields),
+    detailTableConfigs: row.detail_table_configs ? JSON.parse(row.detail_table_configs) : {},
+    dialogTemplates: row.dialog_templates ? JSON.parse(row.dialog_templates) : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -153,14 +174,16 @@ export function insertProject(project: DbProject): void {
   if (!db) throw new Error('Database not initialized');
 
   db.run(
-    `INSERT INTO projects (id, username, name, metadata, fields, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO projects (id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       project.id,
       project.username,
       project.name,
       JSON.stringify(project.metadata),
       JSON.stringify(project.fields),
+      JSON.stringify(project.detailTableConfigs || {}),
+      JSON.stringify(project.dialogTemplates || []),
       project.createdAt,
       project.updatedAt,
     ]
@@ -178,7 +201,7 @@ export function getProjectById(id: string): DbProject | null {
   if (!db) throw new Error('Database not initialized');
 
   const result = db.exec(
-    `SELECT id, username, name, metadata, fields, created_at, updated_at
+    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at
      FROM projects WHERE id = ?`,
     [id]
   );
@@ -196,6 +219,8 @@ export function getProjectById(id: string): DbProject | null {
     name: values[columns.indexOf('name')] as string,
     metadata: values[columns.indexOf('metadata')] as string,
     fields: values[columns.indexOf('fields')] as string,
+    detail_table_configs: values[columns.indexOf('detail_table_configs')] as string | null,
+    dialog_templates: values[columns.indexOf('dialog_templates')] as string | null,
     created_at: values[columns.indexOf('created_at')] as string,
     updated_at: values[columns.indexOf('updated_at')] as string,
   };
@@ -210,7 +235,7 @@ export function getProjectsByUsername(username: string): DbProject[] {
   if (!db) throw new Error('Database not initialized');
 
   const result = db.exec(
-    `SELECT id, username, name, metadata, fields, created_at, updated_at
+    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at
      FROM projects WHERE username = ? ORDER BY updated_at DESC`,
     [username]
   );
@@ -227,6 +252,8 @@ export function getProjectsByUsername(username: string): DbProject[] {
       name: values[columns.indexOf('name')] as string,
       metadata: values[columns.indexOf('metadata')] as string,
       fields: values[columns.indexOf('fields')] as string,
+      detail_table_configs: values[columns.indexOf('detail_table_configs')] as string | null,
+      dialog_templates: values[columns.indexOf('dialog_templates')] as string | null,
       created_at: values[columns.indexOf('created_at')] as string,
       updated_at: values[columns.indexOf('updated_at')] as string,
     };
@@ -264,6 +291,16 @@ export function updateProject(
   if (updates.fields !== undefined) {
     setClauses.push('fields = ?');
     values.push(JSON.stringify(updates.fields));
+  }
+
+  if (updates.detailTableConfigs !== undefined) {
+    setClauses.push('detail_table_configs = ?');
+    values.push(JSON.stringify(updates.detailTableConfigs));
+  }
+
+  if (updates.dialogTemplates !== undefined) {
+    setClauses.push('dialog_templates = ?');
+    values.push(JSON.stringify(updates.dialogTemplates));
   }
 
   if (updates.updatedAt !== undefined) {
