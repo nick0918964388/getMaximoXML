@@ -105,19 +105,46 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
           label: tabName,
           headerFields: [],
           detailTables: new Map(),
+          subTabs: new Map(),
         });
       }
 
       const tab = tabsMap.get(tabName)!;
+      const subTabName = field.subTabName;
 
-      if (field.area === 'header') {
-        tab.headerFields.push(field);
-      } else if (field.area === 'detail') {
-        const relationship = field.relationship || 'default';
-        if (!tab.detailTables.has(relationship)) {
-          tab.detailTables.set(relationship, []);
+      // If field has a subTabName, group it into subTabs
+      if (subTabName) {
+        if (!tab.subTabs.has(subTabName)) {
+          tab.subTabs.set(subTabName, {
+            id: `subtab_${subTabName.toLowerCase().replace(/\s+/g, '_')}`,
+            label: subTabName,
+            headerFields: [],
+            detailTables: new Map(),
+          });
         }
-        tab.detailTables.get(relationship)!.push(field);
+
+        const subTab = tab.subTabs.get(subTabName)!;
+
+        if (field.area === 'header') {
+          subTab.headerFields.push(field);
+        } else if (field.area === 'detail') {
+          const relationship = field.relationship || 'default';
+          if (!subTab.detailTables.has(relationship)) {
+            subTab.detailTables.set(relationship, []);
+          }
+          subTab.detailTables.get(relationship)!.push(field);
+        }
+      } else {
+        // No subTabName, add directly to tab
+        if (field.area === 'header') {
+          tab.headerFields.push(field);
+        } else if (field.area === 'detail') {
+          const relationship = field.relationship || 'default';
+          if (!tab.detailTables.has(relationship)) {
+            tab.detailTables.set(relationship, []);
+          }
+          tab.detailTables.get(relationship)!.push(field);
+        }
       }
     }
   }

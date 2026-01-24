@@ -1,9 +1,48 @@
-import type { TabDefinition, DetailTableConfig } from '../types';
+import type { TabDefinition, DetailTableConfig, ProcessedField } from '../types';
 import { generateSectionWithFields, generateTable } from '../generators';
 import { generateId } from '../utils/id-generator';
 
 /**
+ * Generate content for a tab or subtab (header section + detail tables)
+ */
+function generateTabContent(
+  headerFields: ProcessedField[],
+  detailTables: Map<string, ProcessedField[]>,
+  sectionId: string,
+  tabLabel: string,
+  detailTableConfigs: Record<string, DetailTableConfig> = {}
+): string[] {
+  const parts: string[] = [];
+
+  // Generate header section if there are header fields
+  if (headerFields.length > 0) {
+    const section = generateSectionWithFields(sectionId, headerFields);
+    parts.push(section);
+  }
+
+  // Generate detail tables
+  if (detailTables.size > 0) {
+    for (const [tableName, fields] of detailTables) {
+      // Get config for this detail table
+      const configKey = `${tabLabel}:${tableName}`;
+      const config = detailTableConfigs[configKey];
+
+      // Use config values if available, otherwise use defaults
+      const label = config?.label || tableName.replace(/_/g, ' ');
+      const orderBy = config?.orderBy || undefined;
+      const beanclass = config?.beanclass || undefined;
+
+      const table = generateTable(fields, tableName, label, orderBy, beanclass);
+      parts.push(table);
+    }
+  }
+
+  return parts;
+}
+
+/**
  * Generate a form tab with header section and optional detail tables
+ * Also supports nested subTabs (tabgroup within tab)
  */
 export function generateFormTab(
   tab: TabDefinition,
@@ -11,14 +50,14 @@ export function generateFormTab(
 ): string {
   const parts: string[] = [];
 
-  // Generate header section if there are header fields
+  // Generate header section if there are header fields (fields without subTabName)
   if (tab.headerFields.length > 0) {
     const sectionId = `${tab.id}_grid`;
     const section = generateSectionWithFields(sectionId, tab.headerFields);
     parts.push(section);
   }
 
-  // Generate detail tables
+  // Generate detail tables (without subTabName)
   if (tab.detailTables.size > 0) {
     for (const [tableName, fields] of tab.detailTables) {
       // Get config for this detail table
@@ -33,6 +72,33 @@ export function generateFormTab(
       const table = generateTable(fields, tableName, label, orderBy, beanclass);
       parts.push(table);
     }
+  }
+
+  // Generate nested tabgroup if there are subTabs
+  if (tab.subTabs && tab.subTabs.size > 0) {
+    const subTabGroupId = `${tab.id}_subtabgroup`;
+    const subTabParts: string[] = [];
+
+    for (const [subTabName, subTab] of tab.subTabs) {
+      const subTabContentParts = generateTabContent(
+        subTab.headerFields,
+        subTab.detailTables,
+        `${subTab.id}_grid`,
+        `${tab.label}:${subTabName}`,
+        detailTableConfigs
+      );
+
+      const subTabContent = subTabContentParts.join('\n\t\t\t\t\t\t\t\t\t');
+      const subTabXml = `<tab id="${subTab.id}" label="${subTab.label}" tabchangeevent="switchedTab" type="insert">
+\t\t\t\t\t\t\t\t${subTabContent}
+\t\t\t\t\t\t\t</tab>`;
+      subTabParts.push(subTabXml);
+    }
+
+    const nestedTabGroup = `<tabgroup id="${subTabGroupId}">
+\t\t\t\t\t\t\t${subTabParts.join('\n\t\t\t\t\t\t\t')}
+\t\t\t\t\t\t</tabgroup>`;
+    parts.push(nestedTabGroup);
   }
 
   const content = parts.join('\n\t\t\t\t\t\t\t');

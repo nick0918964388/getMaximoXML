@@ -22,6 +22,18 @@ export type InputMode = 'required' | 'readonly' | 'query' | 'optional';
 export type FieldArea = 'header' | 'detail' | 'list';
 
 /**
+ * Sub-tab definition within a main tab
+ */
+export interface SubTabDefinition {
+  /** Sub-tab ID */
+  id: string;
+  /** Sub-tab label */
+  label: string;
+  /** Order within the parent tab */
+  order: number;
+}
+
+/**
  * Maximo attribute data types
  */
 export type MaximoDataType =
@@ -75,6 +87,8 @@ export interface SAFieldDefinition {
   tabName: string;
   /** Column (column number for multi-column layout, optional) */
   column: number;
+  /** Order (display order within the same group) */
+  order: number;
 
   // ===== Database Configuration Fields =====
   /** Maximo data type (ALN/INTEGER/DECIMAL/DATE/YORN etc.) */
@@ -101,6 +115,8 @@ export interface SAFieldDefinition {
   descLabel: string;
   /** Description input mode (second part input mode of multiparttextbox) */
   descInputMode: InputMode;
+  /** Sub-tab name within the parent tab */
+  subTabName: string;
 }
 
 /**
@@ -125,6 +141,13 @@ export interface TabDefinition {
   headerFields: ProcessedField[];
   /** Detail tables (area=detail, grouped by relationship) */
   detailTables: Map<string, ProcessedField[]>;
+  /** Sub-tabs within this tab (nested tabgroup) */
+  subTabs: Map<string, {
+    id: string;
+    label: string;
+    headerFields: ProcessedField[];
+    detailTables: Map<string, ProcessedField[]>;
+  }>;
 }
 
 /**
@@ -227,6 +250,8 @@ export interface SavedProject {
   detailTableConfigs: Record<string, DetailTableConfig>;
   /** Dialog templates */
   dialogTemplates: DialogTemplate[];
+  /** Sub-tab configurations (key = tabName) */
+  subTabConfigs: Record<string, SubTabDefinition[]>;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */
@@ -250,6 +275,7 @@ export const DEFAULT_FIELD: SAFieldDefinition = {
   area: 'header',
   tabName: '',
   column: 0,
+  order: 0,
   maxType: 'ALN',
   length: 100,
   scale: 0,
@@ -261,6 +287,7 @@ export const DEFAULT_FIELD: SAFieldDefinition = {
   descDataattribute: '',
   descLabel: '',
   descInputMode: 'optional',
+  subTabName: '',
 };
 
 /**
@@ -285,6 +312,15 @@ export const DEFAULT_DETAIL_TABLE_CONFIG: DetailTableConfig = {
   label: '',
   orderBy: '',
   beanclass: '',
+};
+
+/**
+ * Default sub-tab definition
+ */
+export const DEFAULT_SUB_TAB: SubTabDefinition = {
+  id: '',
+  label: '',
+  order: 0,
 };
 
 /**

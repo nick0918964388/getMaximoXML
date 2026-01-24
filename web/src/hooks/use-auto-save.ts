@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate } from '@/lib/types';
+import type { SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate, SubTabDefinition } from '@/lib/types';
 
 const DRAFT_KEY = 'maximo-xml-generator-draft';
 const DEBOUNCE_MS = 1500; // Auto-save 1.5 seconds after last change
@@ -13,6 +13,7 @@ interface DraftData {
   metadata: ApplicationMetadata;
   detailTableConfigs: Record<string, DetailTableConfig>;
   dialogTemplates: DialogTemplate[];
+  subTabConfigs: Record<string, SubTabDefinition[]>;
   projectId: string | null;
   projectName: string;
   savedAt: string;
@@ -23,6 +24,7 @@ interface UseAutoSaveOptions {
   metadata: ApplicationMetadata;
   detailTableConfigs: Record<string, DetailTableConfig>;
   dialogTemplates: DialogTemplate[];
+  subTabConfigs: Record<string, SubTabDefinition[]>;
   projectId: string | null;
   projectName: string;
   enabled?: boolean;
@@ -72,6 +74,7 @@ export function useAutoSave({
   metadata,
   detailTableConfigs,
   dialogTemplates,
+  subTabConfigs,
   projectId,
   projectName,
   enabled = true,
@@ -89,6 +92,7 @@ export function useAutoSave({
         metadata,
         detailTableConfigs,
         dialogTemplates,
+        subTabConfigs,
         projectId,
         projectName,
         savedAt: new Date().toISOString(),
@@ -100,7 +104,7 @@ export function useAutoSave({
       console.error('Auto-save error:', error);
       setStatus('error');
     }
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, projectId, projectName]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName]);
 
   // Debounced auto-save on changes
   useEffect(() => {
@@ -130,7 +134,7 @@ export function useAutoSave({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, projectId, projectName, enabled, saveDraft]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName, enabled, saveDraft]);
 
   // Save on window unload
   useEffect(() => {
@@ -144,6 +148,7 @@ export function useAutoSave({
           metadata,
           detailTableConfigs,
           dialogTemplates,
+          subTabConfigs,
           projectId,
           projectName,
           savedAt: new Date().toISOString(),
@@ -158,7 +163,7 @@ export function useAutoSave({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, projectId, projectName, enabled]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName, enabled]);
 
   return {
     status,

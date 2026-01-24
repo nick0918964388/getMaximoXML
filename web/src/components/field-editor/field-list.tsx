@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { SAFieldDefinition, DEFAULT_FIELD, DetailTableConfig, DEFAULT_DETAIL_TABLE_CONFIG } from '@/lib/types';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { SAFieldDefinition, DEFAULT_FIELD, DetailTableConfig, DEFAULT_DETAIL_TABLE_CONFIG, SubTabDefinition } from '@/lib/types';
+import { moveFieldUp, moveFieldDown } from '@/lib/field-ordering';
 import { DetailTableConfigDialog } from './detail-table-config';
+import { SubTabManager } from './sub-tab-manager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +46,8 @@ interface FieldListProps {
   onActiveTabChange?: (tab: string) => void;
   detailTableConfigs?: Record<string, DetailTableConfig>;
   onDetailTableConfigsChange?: (configs: Record<string, DetailTableConfig>) => void;
+  subTabConfigs?: Record<string, SubTabDefinition[]>;
+  onSubTabConfigsChange?: (configs: Record<string, SubTabDefinition[]>) => void;
 }
 
 interface GroupedFields {
@@ -61,6 +65,8 @@ export function FieldList({
   onActiveTabChange,
   detailTableConfigs = {},
   onDetailTableConfigsChange,
+  subTabConfigs = {},
+  onSubTabConfigsChange,
 }: FieldListProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState('_list');
@@ -104,7 +110,7 @@ export function FieldList({
     }
   }, [newlyAddedIndex, fields.length]);
 
-  // Group fields by area and tabName
+  // Group fields by area and tabName, sorted by order
   const groupedFields = useMemo<GroupedFields>(() => {
     const result: GroupedFields = {
       list: [],
@@ -135,6 +141,15 @@ export function FieldList({
       }
     });
 
+    // Sort each group by order
+    result.list.sort((a, b) => a.field.order - b.field.order);
+    result.tabs.forEach((tab) => {
+      tab.header.sort((a, b) => a.field.order - b.field.order);
+      tab.detail.forEach((detailFields) => {
+        detailFields.sort((a, b) => a.field.order - b.field.order);
+      });
+    });
+
     return result;
   }, [fields]);
 
@@ -155,11 +170,26 @@ export function FieldList({
   }, [fields]);
 
   const handleAdd = (area: SAFieldDefinition['area'], tabName?: string, relationship?: string) => {
+    // Calculate the next order value for the group
+    let maxOrder = -1;
+    fields.forEach((f) => {
+      if (f.area === area) {
+        if (area === 'list') {
+          maxOrder = Math.max(maxOrder, f.order);
+        } else if (area === 'header' && (f.tabName || 'Main') === (tabName || 'Main')) {
+          maxOrder = Math.max(maxOrder, f.order);
+        } else if (area === 'detail' && (f.tabName || 'Main') === (tabName || 'Main') && (f.relationship || 'default') === (relationship || 'default')) {
+          maxOrder = Math.max(maxOrder, f.order);
+        }
+      }
+    });
+
     const newField: SAFieldDefinition = {
       ...DEFAULT_FIELD,
       area,
       tabName: tabName || '',
       relationship: relationship || '',
+      order: maxOrder + 1,
     };
     const newIndex = fields.length;
     onFieldsChange([...fields, newField]);
@@ -199,6 +229,22 @@ export function FieldList({
   const handleEditDetails = (index: number) => {
     setEditingIndex(index);
   };
+
+  // Move field up in its group
+  const handleMoveUp = useCallback((index: number) => {
+    const newFields = moveFieldUp(fields, index);
+    if (newFields !== fields) {
+      onFieldsChange(newFields);
+    }
+  }, [fields, onFieldsChange]);
+
+  // Move field down in its group
+  const handleMoveDown = useCallback((index: number) => {
+    const newFields = moveFieldDown(fields, index);
+    if (newFields !== fields) {
+      onFieldsChange(newFields);
+    }
+  }, [fields, onFieldsChange]);
 
   const handleSaveField = (field: SAFieldDefinition) => {
     if (editingIndex !== null) {
@@ -353,6 +399,41 @@ export function FieldList({
     return detailTableConfigs[key] || { ...DEFAULT_DETAIL_TABLE_CONFIG, relationship };
   };
 
+  // Sub-tab config handlers
+  const getSubTabsForTab = (tabName: string): SubTabDefinition[] => {
+    return subTabConfigs[tabName] || [];
+  };
+
+  const handleSubTabsChange = (tabName: string, subTabs: SubTabDefinition[]) => {
+    if (onSubTabConfigsChange) {
+      onSubTabConfigsChange({
+        ...subTabConfigs,
+        [tabName]: subTabs,
+      });
+    }
+  };
+
+  // Get available subTab labels for a tab
+  const getAvailableSubTabLabels = (tabName: string): string[] => {
+    const subTabs = getSubTabsForTab(tabName);
+    return subTabs.map(st => st.label).sort((a, b) => {
+      const subTabA = subTabs.find(st => st.label === a);
+      const subTabB = subTabs.find(st => st.label === b);
+      return (subTabA?.order || 0) - (subTabB?.order || 0);
+    });
+  };
+
+  // Count fields by subTabName for a given tab
+  const getFieldCountBySubTab = (tabName: string): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    fields.forEach(f => {
+      if ((f.tabName || 'Main') === tabName && f.subTabName) {
+        counts[f.subTabName] = (counts[f.subTabName] || 0) + 1;
+      }
+    });
+    return counts;
+  };
+
   const renderFieldHeader = () => (
     <div className="grid grid-cols-12 gap-2 px-2 text-sm font-medium text-muted-foreground mb-2">
       <div className="col-span-1 text-center">#</div>
@@ -384,7 +465,7 @@ export function FieldList({
           尚無欄位
         </div>
       ) : (
-        items.map(({ field, originalIndex }) => (
+        items.map(({ field, originalIndex }, displayIndex) => (
           <FieldRow
             key={originalIndex}
             field={field}
@@ -394,6 +475,10 @@ export function FieldList({
             onDuplicate={handleDuplicate}
             onCopyToTab={handleCopyToTab}
             onEditDetails={handleEditDetails}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
+            isFirst={displayIndex === 0}
+            isLast={displayIndex === items.length - 1}
             tabNames={tabNames}
             currentTab={currentTab}
             labelInputRef={(ref) => registerFieldInputRef(originalIndex, ref)}
@@ -568,6 +653,16 @@ export function FieldList({
                 </div>
               </div>
 
+              {/* Sub-Tab Manager */}
+              <div className="border rounded-md p-4 bg-muted/20">
+                <SubTabManager
+                  tabName={tabName}
+                  subTabs={getSubTabsForTab(tabName)}
+                  onSubTabsChange={(subTabs) => handleSubTabsChange(tabName, subTabs)}
+                  fieldCountBySubTab={getFieldCountBySubTab(tabName)}
+                />
+              </div>
+
               {/* Header 欄位 */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -661,6 +756,11 @@ export function FieldList({
         open={editingIndex !== null}
         onClose={handleCloseForm}
         onSave={handleSaveField}
+        availableSubTabs={
+          editingIndex !== null && fields[editingIndex]?.tabName
+            ? getAvailableSubTabLabels(fields[editingIndex].tabName || 'Main')
+            : []
+        }
       />
 
       {/* Rename Tab Dialog */}

@@ -36,9 +36,10 @@ interface FieldFormProps {
   open: boolean;
   onClose: () => void;
   onSave: (field: SAFieldDefinition) => void;
+  availableSubTabs?: string[];
 }
 
-export function FieldForm({ field, open, onClose, onSave }: FieldFormProps) {
+export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [] }: FieldFormProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const translateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLabelRef = useRef(field?.label || '');
@@ -230,6 +231,31 @@ export function FieldForm({ field, open, onClose, onSave }: FieldFormProps) {
                   placeholder="頁籤群組名稱"
                 />
               </div>
+
+              {/* Sub-tab selector - only show for header/detail fields with tabName */}
+              {field.area !== 'list' && field.tabName && availableSubTabs.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="subTabName">子頁籤</Label>
+                  <Select
+                    value={field.subTabName || '_none'}
+                    onValueChange={(value) =>
+                      handleChange({ subTabName: value === '_none' ? '' : value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇子頁籤（可選）" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">無（直接在主頁籤）</SelectItem>
+                      {availableSubTabs.map((subTab) => (
+                        <SelectItem key={subTab} value={subTab}>
+                          {subTab}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </TabsContent>
 

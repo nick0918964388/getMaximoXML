@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { FIELD_TYPES, INPUT_MODES, FIELD_AREAS } from '@/lib/constants';
 
 interface FieldRowProps {
@@ -29,6 +30,10 @@ interface FieldRowProps {
   onDuplicate: (index: number) => void;
   onCopyToTab: (index: number, targetTab: string) => void;
   onEditDetails: (index: number) => void;
+  onMoveUp?: (index: number) => void;
+  onMoveDown?: (index: number) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
   tabNames: string[];
   currentTab: string;
   labelInputRef?: (ref: HTMLInputElement | null) => void;
@@ -42,6 +47,10 @@ export function FieldRow({
   onDuplicate,
   onCopyToTab,
   onEditDetails,
+  onMoveUp,
+  onMoveDown,
+  isFirst = false,
+  isLast = false,
   tabNames,
   currentTab,
   labelInputRef,
@@ -193,6 +202,30 @@ export function FieldRow({
 
       {/* 操作 */}
       <div className="col-span-2 flex gap-1 justify-end">
+        {onMoveUp && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onMoveUp(index)}
+            disabled={isFirst}
+            className="h-7 w-7 p-0"
+            title="上移"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+        )}
+        {onMoveDown && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onMoveDown(index)}
+            disabled={isLast}
+            className="h-7 w-7 p-0"
+            title="下移"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

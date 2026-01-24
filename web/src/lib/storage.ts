@@ -1,4 +1,4 @@
-import type { SavedProject, SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate } from './types';
+import type { SavedProject, SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate, SubTabDefinition } from './types';
 
 const USERNAME_KEY = 'maximo-xml-generator-username';
 
@@ -56,7 +56,8 @@ export async function saveProject(
   existingId?: string,
   username?: string,
   detailTableConfigs: Record<string, DetailTableConfig> = {},
-  dialogTemplates: DialogTemplate[] = []
+  dialogTemplates: DialogTemplate[] = [],
+  subTabConfigs: Record<string, SubTabDefinition[]> = {}
 ): Promise<SavedProject | null> {
   const user = username || getUsername();
   if (!user) return null;
@@ -67,7 +68,7 @@ export async function saveProject(
       const response = await fetch(`/api/projects/${existingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, metadata, fields, detailTableConfigs, dialogTemplates }),
+        body: JSON.stringify({ name, metadata, fields, detailTableConfigs, dialogTemplates, subTabConfigs }),
       });
 
       if (!response.ok) return null;
@@ -85,6 +86,7 @@ export async function saveProject(
         fields,
         detailTableConfigs,
         dialogTemplates,
+        subTabConfigs,
       }),
     });
 
@@ -157,6 +159,7 @@ export async function importProject(json: string, username?: string): Promise<Sa
         fields: project.fields,
         detailTableConfigs: project.detailTableConfigs || {},
         dialogTemplates: project.dialogTemplates || [],
+        subTabConfigs: project.subTabConfigs || {},
       }),
     });
 
