@@ -5,8 +5,7 @@ import { SubTabDefinition, DEFAULT_SUB_TAB } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,12 +23,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SubTabManagerProps {
   tabName: string;
   subTabs: SubTabDefinition[];
   onSubTabsChange: (subTabs: SubTabDefinition[]) => void;
   fieldCountBySubTab: Record<string, number>;
+}
+
+/**
+ * Move a sub-tab to the left (decrease order)
+ */
+export function moveSubTabLeft(subTabs: SubTabDefinition[], subTab: SubTabDefinition): SubTabDefinition[] {
+  const sortedSubTabs = [...subTabs].sort((a, b) => a.order - b.order);
+  const index = sortedSubTabs.findIndex(st => st.id === subTab.id);
+  if (index <= 0) return subTabs;
+
+  const newSubTabs = [...sortedSubTabs];
+  [newSubTabs[index - 1], newSubTabs[index]] = [newSubTabs[index], newSubTabs[index - 1]];
+  return newSubTabs.map((st, i) => ({ ...st, order: i }));
+}
+
+/**
+ * Move a sub-tab to the right (increase order)
+ */
+export function moveSubTabRight(subTabs: SubTabDefinition[], subTab: SubTabDefinition): SubTabDefinition[] {
+  const sortedSubTabs = [...subTabs].sort((a, b) => a.order - b.order);
+  const index = sortedSubTabs.findIndex(st => st.id === subTab.id);
+  if (index < 0 || index >= sortedSubTabs.length - 1) return subTabs;
+
+  const newSubTabs = [...sortedSubTabs];
+  [newSubTabs[index], newSubTabs[index + 1]] = [newSubTabs[index + 1], newSubTabs[index]];
+  return newSubTabs.map((st, i) => ({ ...st, order: i }));
 }
 
 export function SubTabManager({
@@ -87,24 +119,6 @@ export function SubTabManager({
     setDeleteDialogOpen(false);
   };
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return;
-    const newSubTabs = [...subTabs];
-    [newSubTabs[index - 1], newSubTabs[index]] = [newSubTabs[index], newSubTabs[index - 1]];
-    // Update order values
-    const reorderedSubTabs = newSubTabs.map((st, i) => ({ ...st, order: i }));
-    onSubTabsChange(reorderedSubTabs);
-  };
-
-  const handleMoveDown = (index: number) => {
-    if (index === subTabs.length - 1) return;
-    const newSubTabs = [...subTabs];
-    [newSubTabs[index], newSubTabs[index + 1]] = [newSubTabs[index + 1], newSubTabs[index]];
-    // Update order values
-    const reorderedSubTabs = newSubTabs.map((st, i) => ({ ...st, order: i }));
-    onSubTabsChange(reorderedSubTabs);
-  };
-
   const openEditDialog = (subTab: SubTabDefinition) => {
     setEditingSubTab({ ...subTab });
     setEditDialogOpen(true);
@@ -115,84 +129,56 @@ export function SubTabManager({
     setDeleteDialogOpen(true);
   };
 
-  // Sort subTabs by order
   const sortedSubTabs = [...subTabs].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h5 className="text-sm font-medium text-muted-foreground">子頁籤</h5>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setAddDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          新增子頁籤
-        </Button>
-      </div>
-
-      {sortedSubTabs.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4 border rounded-md">
-          尚無子頁籤。新增子頁籤後，可在欄位編輯時選擇子頁籤。
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {sortedSubTabs.map((subTab, index) => {
-            const fieldCount = fieldCountBySubTab[subTab.label] || 0;
-            return (
-              <div
-                key={subTab.id}
-                className="flex items-center justify-between p-2 border rounded-md bg-muted/30"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col gap-0.5">
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Plus className="h-4 w-4 mr-1" />
+            管理子頁籤
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuItem onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            新增子頁籤
+          </DropdownMenuItem>
+          {sortedSubTabs.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              {sortedSubTabs.map((subTab) => (
+                <DropdownMenuItem
+                  key={subTab.id}
+                  className="flex items-center justify-between"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <span className="flex-1 truncate">{subTab.label}</span>
+                  <div className="flex items-center gap-1 ml-2">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-4 w-4"
-                      onClick={() => handleMoveUp(index)}
-                      disabled={index === 0}
+                      className="h-6 w-6"
+                      onClick={(e) => { e.stopPropagation(); openEditDialog(subTab); }}
                     >
-                      <GripVertical className="h-3 w-3 rotate-90" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-4 w-4"
-                      onClick={() => handleMoveDown(index)}
-                      disabled={index === sortedSubTabs.length - 1}
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); openDeleteDialog(subTab); }}
                     >
-                      <GripVertical className="h-3 w-3 rotate-90" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                  <span className="font-medium">{subTab.label}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {fieldCount} 欄位
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditDialog(subTab)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openDeleteDialog(subTab)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Add SubTab Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -288,6 +274,6 @@ export function SubTabManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

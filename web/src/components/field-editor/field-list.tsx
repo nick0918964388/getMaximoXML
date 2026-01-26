@@ -5,7 +5,7 @@ import { SAFieldDefinition, DEFAULT_FIELD, DetailTableConfig, DEFAULT_DETAIL_TAB
 import { FieldSuggestions } from '@/hooks/use-field-suggestions';
 import { moveFieldUp, moveFieldDown } from '@/lib/field-ordering';
 import { DetailTableConfigDialog } from './detail-table-config';
-import { SubTabManager } from './sub-tab-manager';
+import { SubTabManager, moveSubTabLeft, moveSubTabRight } from './sub-tab-manager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -797,18 +797,48 @@ export function FieldList({
                         {Array.from(tab.detail.values()).reduce((sum, arr) => sum + arr.length, 0)}
                       </Badge>
                     </TabsTrigger>
-                    {sortedSubTabs.map((subTab) => {
+                    {sortedSubTabs.map((subTab, index) => {
                       const subTabFields = tab.subTabs.get(subTab.label);
                       const count = subTabFields
                         ? Array.from(subTabFields.detail.values()).reduce((sum, arr) => sum + arr.length, 0)
                         : 0;
+                      const isFirst = index === 0;
+                      const isLast = index === sortedSubTabs.length - 1;
                       return (
-                        <TabsTrigger key={subTab.id} value={subTab.label} className="flex items-center gap-1">
-                          {subTab.label}
-                          <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                            {count}
-                          </Badge>
-                        </TabsTrigger>
+                        <div key={subTab.id} className="flex items-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 px-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newSubTabs = moveSubTabLeft(subTabsConfig, subTab);
+                              handleSubTabsChange(tabName, newSubTabs);
+                            }}
+                            disabled={isFirst}
+                          >
+                            <ChevronLeft className="h-3 w-3" />
+                          </Button>
+                          <TabsTrigger value={subTab.label} className="flex items-center gap-1">
+                            {subTab.label}
+                            <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                              {count}
+                            </Badge>
+                          </TabsTrigger>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 px-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newSubTabs = moveSubTabRight(subTabsConfig, subTab);
+                              handleSubTabsChange(tabName, newSubTabs);
+                            }}
+                            disabled={isLast}
+                          >
+                            <ChevronRight className="h-3 w-3" />
+                          </Button>
+                        </div>
                       );
                     })}
                   </TabsList>
