@@ -117,6 +117,70 @@ describe('field-processor', () => {
 
       expect(result.tabs.has('Main')).toBe(true);
     });
+
+    it('should sort list fields by order', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Field C', area: 'list', order: 2 },
+        { ...DEFAULT_FIELD, label: 'Field A', area: 'list', order: 0 },
+        { ...DEFAULT_FIELD, label: 'Field B', area: 'list', order: 1 },
+      ];
+
+      const result = processFields(fields);
+
+      expect(result.listFields[0].label).toBe('Field A');
+      expect(result.listFields[1].label).toBe('Field B');
+      expect(result.listFields[2].label).toBe('Field C');
+    });
+
+    it('should sort header fields by order', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Header C', area: 'header', tabName: 'Main', order: 2 },
+        { ...DEFAULT_FIELD, label: 'Header A', area: 'header', tabName: 'Main', order: 0 },
+        { ...DEFAULT_FIELD, label: 'Header B', area: 'header', tabName: 'Main', order: 1 },
+      ];
+
+      const result = processFields(fields);
+
+      const headerFields = result.tabs.get('Main')?.headerFields || [];
+      expect(headerFields[0].label).toBe('Header A');
+      expect(headerFields[1].label).toBe('Header B');
+      expect(headerFields[2].label).toBe('Header C');
+    });
+
+    it('should sort detail fields by order within each relationship', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Detail C', area: 'detail', tabName: 'Main', relationship: 'worklog', order: 2 },
+        { ...DEFAULT_FIELD, label: 'Detail A', area: 'detail', tabName: 'Main', relationship: 'worklog', order: 0 },
+        { ...DEFAULT_FIELD, label: 'Detail B', area: 'detail', tabName: 'Main', relationship: 'worklog', order: 1 },
+      ];
+
+      const result = processFields(fields);
+
+      const detailFields = result.tabs.get('Main')?.detailTables.get('worklog') || [];
+      expect(detailFields[0].label).toBe('Detail A');
+      expect(detailFields[1].label).toBe('Detail B');
+      expect(detailFields[2].label).toBe('Detail C');
+    });
+
+    it('should handle fields without order property (legacy data)', () => {
+      // Simulate legacy data without order property
+      const fields = [
+        { ...DEFAULT_FIELD, label: 'Field 1', area: 'list' as const },
+        { ...DEFAULT_FIELD, label: 'Field 2', area: 'list' as const },
+        { ...DEFAULT_FIELD, label: 'Field 3', area: 'list' as const },
+      ];
+      // Remove order property to simulate legacy data
+      delete (fields[0] as Partial<SAFieldDefinition>).order;
+      delete (fields[1] as Partial<SAFieldDefinition>).order;
+      delete (fields[2] as Partial<SAFieldDefinition>).order;
+
+      const result = processFields(fields);
+
+      // Should maintain original order when order property is missing
+      expect(result.listFields[0].label).toBe('Field 1');
+      expect(result.listFields[1].label).toBe('Field 2');
+      expect(result.listFields[2].label).toBe('Field 3');
+    });
   });
 
   describe('validateField', () => {

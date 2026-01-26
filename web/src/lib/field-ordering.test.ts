@@ -22,6 +22,32 @@ describe('moveFieldUp', () => {
     expect(result).toEqual(fields);
   });
 
+  it('should handle fields without order property (legacy data)', () => {
+    // Simulate legacy data without order property
+    const fields = [
+      { ...DEFAULT_FIELD, label: 'Field 1', area: 'list' as const },
+      { ...DEFAULT_FIELD, label: 'Field 2', area: 'list' as const },
+      { ...DEFAULT_FIELD, label: 'Field 3', area: 'list' as const },
+    ];
+    // Remove order property to simulate legacy data
+    delete (fields[0] as Partial<SAFieldDefinition>).order;
+    delete (fields[1] as Partial<SAFieldDefinition>).order;
+    delete (fields[2] as Partial<SAFieldDefinition>).order;
+
+    // Move Field 2 (index 1) up
+    const result = moveFieldUp(fields, 1);
+
+    // After moving up, Field 2 should be before Field 1
+    // The function should use array index as fallback order
+    expect(result[0].label).toBe('Field 1');
+    expect(result[1].label).toBe('Field 2');
+    // Check that orders are now set
+    expect(result[0].order).toBeDefined();
+    expect(result[1].order).toBeDefined();
+    // Field 2 should have lower order than Field 1 after moving up
+    expect(result[1].order).toBeLessThan(result[0].order);
+  });
+
   it('should move a field up within the same group', () => {
     const fields = [
       createField({ label: 'Field 1', order: 0, area: 'header', tabName: 'Tab1' }),
@@ -159,6 +185,84 @@ describe('moveFieldDown', () => {
   });
 });
 
+describe('moveFieldUp with subTabs', () => {
+  it('should not move a field up across different subTabs', () => {
+    const fields = [
+      createField({ label: 'SubTab1 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab2 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab2' }),
+    ];
+
+    // SubTab2 Field 1 is the first in its subTab group, should not move
+    const result = moveFieldUp(fields, 1);
+
+    expect(result).toEqual(fields);
+  });
+
+  it('should move a field up within the same subTab', () => {
+    const fields = [
+      createField({ label: 'SubTab1 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab1 Field 2', order: 1, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab2 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab2' }),
+    ];
+
+    // Move SubTab1 Field 2 up
+    const result = moveFieldUp(fields, 1);
+
+    expect(result[0].order).toBe(1);
+    expect(result[0].label).toBe('SubTab1 Field 1');
+    expect(result[1].order).toBe(0);
+    expect(result[1].label).toBe('SubTab1 Field 2');
+    // SubTab2 field should be unchanged
+    expect(result[2].order).toBe(0);
+    expect(result[2].label).toBe('SubTab2 Field 1');
+  });
+
+  it('should handle header fields in subTabs separately', () => {
+    const fields = [
+      createField({ label: 'Main Header', order: 0, area: 'header', tabName: 'Tab1', subTabName: '' }),
+      createField({ label: 'SubTab1 Header', order: 0, area: 'header', tabName: 'Tab1', subTabName: 'SubTab1' }),
+    ];
+
+    // SubTab1 Header is the first in its subTab group
+    const result = moveFieldUp(fields, 1);
+
+    expect(result).toEqual(fields);
+  });
+});
+
+describe('moveFieldDown with subTabs', () => {
+  it('should not move a field down across different subTabs', () => {
+    const fields = [
+      createField({ label: 'SubTab1 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab2 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab2' }),
+    ];
+
+    // SubTab1 Field 1 is the last in its subTab group, should not move
+    const result = moveFieldDown(fields, 0);
+
+    expect(result).toEqual(fields);
+  });
+
+  it('should move a field down within the same subTab', () => {
+    const fields = [
+      createField({ label: 'SubTab1 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab1 Field 2', order: 1, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab2 Field 1', order: 0, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab2' }),
+    ];
+
+    // Move SubTab1 Field 1 down
+    const result = moveFieldDown(fields, 0);
+
+    expect(result[0].order).toBe(1);
+    expect(result[0].label).toBe('SubTab1 Field 1');
+    expect(result[1].order).toBe(0);
+    expect(result[1].label).toBe('SubTab1 Field 2');
+    // SubTab2 field should be unchanged
+    expect(result[2].order).toBe(0);
+    expect(result[2].label).toBe('SubTab2 Field 1');
+  });
+});
+
 describe('normalizeFieldOrders', () => {
   it('should normalize orders to be continuous starting from 0', () => {
     const fields = [
@@ -268,5 +372,45 @@ describe('normalizeFieldOrders', () => {
 
     expect(result.find(f => f.label === 'Field 1')?.order).toBe(0);
     expect(result.find(f => f.label === 'Field 2')?.order).toBe(1);
+  });
+
+  it('should handle different subTabs as separate groups', () => {
+    const fields = [
+      createField({ label: 'SubTab1 Field 1', order: 5, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'SubTab2 Field 1', order: 3, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab2' }),
+      createField({ label: 'SubTab1 Field 2', order: 2, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+    ];
+
+    const result = normalizeFieldOrders(fields);
+
+    const subTab1 = result.filter(f => f.subTabName === 'SubTab1');
+    const subTab2 = result.filter(f => f.subTabName === 'SubTab2');
+
+    // SubTab1 fields normalized within their group
+    expect(subTab1.find(f => f.label === 'SubTab1 Field 2')?.order).toBe(0); // was 2
+    expect(subTab1.find(f => f.label === 'SubTab1 Field 1')?.order).toBe(1); // was 5
+
+    // SubTab2 field normalized
+    expect(subTab2.find(f => f.label === 'SubTab2 Field 1')?.order).toBe(0);
+  });
+
+  it('should treat main area (empty subTabName) and subTabs as different groups', () => {
+    const fields = [
+      createField({ label: 'Main Field 1', order: 5, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: '' }),
+      createField({ label: 'SubTab1 Field 1', order: 3, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: 'SubTab1' }),
+      createField({ label: 'Main Field 2', order: 2, area: 'detail', tabName: 'Tab1', relationship: 'REL1', subTabName: '' }),
+    ];
+
+    const result = normalizeFieldOrders(fields);
+
+    const mainFields = result.filter(f => f.subTabName === '');
+    const subTab1Fields = result.filter(f => f.subTabName === 'SubTab1');
+
+    // Main fields normalized
+    expect(mainFields.find(f => f.label === 'Main Field 2')?.order).toBe(0);
+    expect(mainFields.find(f => f.label === 'Main Field 1')?.order).toBe(1);
+
+    // SubTab1 field normalized
+    expect(subTab1Fields.find(f => f.label === 'SubTab1 Field 1')?.order).toBe(0);
   });
 });

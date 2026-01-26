@@ -84,10 +84,31 @@ export function processField(field: SAFieldDefinition): ProcessedField {
 }
 
 /**
+ * Get the order value for a field, using the index as fallback for legacy data
+ */
+function getFieldOrder(field: ProcessedField, index: number): number {
+  return field.order ?? index;
+}
+
+/**
+ * Sort fields by order, handling legacy data without order property
+ */
+function sortFieldsByOrder(fields: ProcessedField[]): ProcessedField[] {
+  return [...fields].sort((a, b) => {
+    const indexA = fields.indexOf(a);
+    const indexB = fields.indexOf(b);
+    return getFieldOrder(a, indexA) - getFieldOrder(b, indexB);
+  });
+}
+
+/**
  * Process all fields and group them into an ApplicationDefinition
  */
 export function processFields(fields: SAFieldDefinition[]): ApplicationDefinition {
-  const processedFields = fields.map(processField);
+  const processedFields = fields.map((field, index) => ({
+    ...processField(field),
+    _originalIndex: index, // Track original index for sorting fallback
+  }));
 
   const listFields: ProcessedField[] = [];
   const tabsMap = new Map<string, TabDefinition>();
@@ -149,8 +170,29 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
     }
   }
 
+  // Sort all field arrays by order
+  const sortedListFields = sortFieldsByOrder(listFields);
+
+  // Sort fields within each tab
+  for (const tab of tabsMap.values()) {
+    tab.headerFields = sortFieldsByOrder(tab.headerFields);
+
+    // Sort detail table fields
+    for (const [relationship, detailFields] of tab.detailTables) {
+      tab.detailTables.set(relationship, sortFieldsByOrder(detailFields));
+    }
+
+    // Sort subTab fields
+    for (const subTab of tab.subTabs.values()) {
+      subTab.headerFields = sortFieldsByOrder(subTab.headerFields);
+      for (const [relationship, detailFields] of subTab.detailTables) {
+        subTab.detailTables.set(relationship, sortFieldsByOrder(detailFields));
+      }
+    }
+  }
+
   return {
-    listFields,
+    listFields: sortedListFields,
     tabs: tabsMap,
   };
 }
