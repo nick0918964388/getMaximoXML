@@ -103,6 +103,12 @@ function sortFieldsByOrder(fields: ProcessedField[]): ProcessedField[] {
 
 /**
  * Process all fields and group them into an ApplicationDefinition
+ *
+ * Rules:
+ * - Header fields create main tabs
+ * - Detail fields with same tabName as a header tab stay in that tab's detailTables
+ * - Detail fields with different tabName become subTabs under the first header tab (or "Main")
+ * - If field has subTabName, it goes into that subTab within its parent tab
  */
 export function processFields(fields: SAFieldDefinition[]): ApplicationDefinition {
   const processedFields = fields.map((field, index) => ({
@@ -113,58 +119,120 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
   const listFields: ProcessedField[] = [];
   const tabsMap = new Map<string, TabDefinition>();
 
+  // First pass: identify all header tab names
+  const headerTabNames = new Set<string>();
+  for (const field of processedFields) {
+    if (field.area === 'header') {
+      const tabName = field.tabName || 'Main';
+      headerTabNames.add(tabName);
+    }
+  }
+
+  // Determine the parent tab for detail-only tabs
+  // Use the first header tab name, or 'Main' if no header tabs exist
+  let parentTabName = 'Main';
+  for (const name of headerTabNames) {
+    parentTabName = name;
+    break;
+  }
+
+  // Ensure parent tab exists
+  if (!tabsMap.has(parentTabName)) {
+    tabsMap.set(parentTabName, {
+      id: `tab_${parentTabName.toLowerCase().replace(/\s+/g, '_')}`,
+      label: parentTabName,
+      headerFields: [],
+      detailTables: new Map(),
+      subTabs: new Map(),
+    });
+  }
+
   for (const field of processedFields) {
     if (field.area === 'list') {
       listFields.push(field);
     } else {
-      // Header and detail fields go into tabs
       const tabName = field.tabName || 'Main';
-
-      if (!tabsMap.has(tabName)) {
-        tabsMap.set(tabName, {
-          id: `tab_${tabName.toLowerCase().replace(/\s+/g, '_')}`,
-          label: tabName,
-          headerFields: [],
-          detailTables: new Map(),
-          subTabs: new Map(),
-        });
-      }
-
-      const tab = tabsMap.get(tabName)!;
       const subTabName = field.subTabName;
 
-      // If field has a subTabName, group it into subTabs
-      if (subTabName) {
-        if (!tab.subTabs.has(subTabName)) {
-          tab.subTabs.set(subTabName, {
-            id: `subtab_${subTabName.toLowerCase().replace(/\s+/g, '_')}`,
-            label: subTabName,
+      if (field.area === 'header') {
+        // Header fields create/use their own tab
+        if (!tabsMap.has(tabName)) {
+          tabsMap.set(tabName, {
+            id: `tab_${tabName.toLowerCase().replace(/\s+/g, '_')}`,
+            label: tabName,
             headerFields: [],
             detailTables: new Map(),
+            subTabs: new Map(),
           });
         }
 
-        const subTab = tab.subTabs.get(subTabName)!;
+        const tab = tabsMap.get(tabName)!;
 
-        if (field.area === 'header') {
-          subTab.headerFields.push(field);
-        } else if (field.area === 'detail') {
-          const relationship = field.relationship || 'default';
+        if (subTabName) {
+          // Header field with subTabName goes into subTab
+          if (!tab.subTabs.has(subTabName)) {
+            tab.subTabs.set(subTabName, {
+              id: `subtab_${subTabName.toLowerCase().replace(/\s+/g, '_')}`,
+              label: subTabName,
+              headerFields: [],
+              detailTables: new Map(),
+            });
+          }
+          tab.subTabs.get(subTabName)!.headerFields.push(field);
+        } else {
+          tab.headerFields.push(field);
+        }
+      } else if (field.area === 'detail') {
+        const relationship = field.relationship || 'default';
+
+        // Check if tabName matches any header tab OR the parent tab name
+        if (headerTabNames.has(tabName) || tabName === parentTabName) {
+          // Detail field in same tab as header - add to that tab's detailTables or subTabs
+          const tab = tabsMap.get(tabName)!;
+
+          if (subTabName) {
+            // Detail field with subTabName
+            if (!tab.subTabs.has(subTabName)) {
+              tab.subTabs.set(subTabName, {
+                id: `subtab_${subTabName.toLowerCase().replace(/\s+/g, '_')}`,
+                label: subTabName,
+                headerFields: [],
+                detailTables: new Map(),
+              });
+            }
+            const subTab = tab.subTabs.get(subTabName)!;
+            if (!subTab.detailTables.has(relationship)) {
+              subTab.detailTables.set(relationship, []);
+            }
+            subTab.detailTables.get(relationship)!.push(field);
+          } else {
+            // Detail field without subTabName - add to tab's detailTables
+            if (!tab.detailTables.has(relationship)) {
+              tab.detailTables.set(relationship, []);
+            }
+            tab.detailTables.get(relationship)!.push(field);
+          }
+        } else {
+          // Detail field with different tabName - becomes subTab under parent tab
+          const parentTab = tabsMap.get(parentTabName)!;
+
+          // Use tabName as subTabName for detail-only tabs
+          const effectiveSubTabName = subTabName || tabName;
+
+          if (!parentTab.subTabs.has(effectiveSubTabName)) {
+            parentTab.subTabs.set(effectiveSubTabName, {
+              id: `subtab_${effectiveSubTabName.toLowerCase().replace(/\s+/g, '_')}`,
+              label: effectiveSubTabName,
+              headerFields: [],
+              detailTables: new Map(),
+            });
+          }
+
+          const subTab = parentTab.subTabs.get(effectiveSubTabName)!;
           if (!subTab.detailTables.has(relationship)) {
             subTab.detailTables.set(relationship, []);
           }
           subTab.detailTables.get(relationship)!.push(field);
-        }
-      } else {
-        // No subTabName, add directly to tab
-        if (field.area === 'header') {
-          tab.headerFields.push(field);
-        } else if (field.area === 'detail') {
-          const relationship = field.relationship || 'default';
-          if (!tab.detailTables.has(relationship)) {
-            tab.detailTables.set(relationship, []);
-          }
-          tab.detailTables.get(relationship)!.push(field);
         }
       }
     }

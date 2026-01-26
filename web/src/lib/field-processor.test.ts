@@ -181,6 +181,95 @@ describe('field-processor', () => {
       expect(result.listFields[1].label).toBe('Field 2');
       expect(result.listFields[2].label).toBe('Field 3');
     });
+
+    it('should convert detail-only tabs to subTabs under parent tab', () => {
+      const fields: SAFieldDefinition[] = [
+        // Header fields in Main tab
+        { ...DEFAULT_FIELD, label: 'Header Field', area: 'header', tabName: 'Main' },
+        // Detail fields with different tabNames - should become subTabs
+        { ...DEFAULT_FIELD, label: 'Worklog Field', area: 'detail', tabName: '工作紀錄', relationship: 'WORKLOG' },
+        { ...DEFAULT_FIELD, label: 'Solution Field', area: 'detail', tabName: '解決方案', relationship: 'SOLUTION' },
+      ];
+
+      const result = processFields(fields);
+
+      // Should only have one main tab (Main)
+      expect(result.tabs.size).toBe(1);
+      expect(result.tabs.has('Main')).toBe(true);
+
+      const mainTab = result.tabs.get('Main')!;
+      // Main tab should have header fields
+      expect(mainTab.headerFields).toHaveLength(1);
+      // Main tab should NOT have direct detail tables (they go to subTabs)
+      expect(mainTab.detailTables.size).toBe(0);
+      // Main tab should have subTabs for detail areas
+      expect(mainTab.subTabs.size).toBe(2);
+      expect(mainTab.subTabs.has('工作紀錄')).toBe(true);
+      expect(mainTab.subTabs.has('解決方案')).toBe(true);
+
+      // Each subTab should have its detail table
+      const worklogSubTab = mainTab.subTabs.get('工作紀錄')!;
+      expect(worklogSubTab.detailTables.has('WORKLOG')).toBe(true);
+      expect(worklogSubTab.detailTables.get('WORKLOG')).toHaveLength(1);
+
+      const solutionSubTab = mainTab.subTabs.get('解決方案')!;
+      expect(solutionSubTab.detailTables.has('SOLUTION')).toBe(true);
+    });
+
+    it('should keep detail fields in same tab as subTabs when tabName differs from header tab', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Header 1', area: 'header', tabName: 'Info' },
+        { ...DEFAULT_FIELD, label: 'Detail 1', area: 'detail', tabName: 'Details', relationship: 'REL1' },
+        { ...DEFAULT_FIELD, label: 'Detail 2', area: 'detail', tabName: 'History', relationship: 'REL2' },
+      ];
+
+      const result = processFields(fields);
+
+      // Should only have one main tab (Info - the first header tab)
+      expect(result.tabs.size).toBe(1);
+      expect(result.tabs.has('Info')).toBe(true);
+
+      const infoTab = result.tabs.get('Info')!;
+      expect(infoTab.headerFields).toHaveLength(1);
+      expect(infoTab.subTabs.size).toBe(2);
+      expect(infoTab.subTabs.has('Details')).toBe(true);
+      expect(infoTab.subTabs.has('History')).toBe(true);
+    });
+
+    it('should create Main tab for detail-only fields when no header tab exists', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Detail 1', area: 'detail', tabName: 'Tab1', relationship: 'REL1' },
+        { ...DEFAULT_FIELD, label: 'Detail 2', area: 'detail', tabName: 'Tab2', relationship: 'REL2' },
+      ];
+
+      const result = processFields(fields);
+
+      // Should create a Main tab
+      expect(result.tabs.size).toBe(1);
+      expect(result.tabs.has('Main')).toBe(true);
+
+      const mainTab = result.tabs.get('Main')!;
+      expect(mainTab.headerFields).toHaveLength(0);
+      expect(mainTab.subTabs.size).toBe(2);
+      expect(mainTab.subTabs.has('Tab1')).toBe(true);
+      expect(mainTab.subTabs.has('Tab2')).toBe(true);
+    });
+
+    it('should keep detail in same tab when tabName matches header tab', () => {
+      const fields: SAFieldDefinition[] = [
+        { ...DEFAULT_FIELD, label: 'Header', area: 'header', tabName: 'Main' },
+        { ...DEFAULT_FIELD, label: 'Detail', area: 'detail', tabName: 'Main', relationship: 'REL1' },
+      ];
+
+      const result = processFields(fields);
+
+      expect(result.tabs.size).toBe(1);
+      const mainTab = result.tabs.get('Main')!;
+      // Detail with same tabName as header should stay in detailTables, not subTabs
+      expect(mainTab.detailTables.size).toBe(1);
+      expect(mainTab.detailTables.has('REL1')).toBe(true);
+      expect(mainTab.subTabs.size).toBe(0);
+    });
   });
 
   describe('validateField', () => {
