@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { SAFieldDefinition, DEFAULT_FIELD, DetailTableConfig, DEFAULT_DETAIL_TABLE_CONFIG, SubTabDefinition } from '@/lib/types';
+import { FieldSuggestions } from '@/hooks/use-field-suggestions';
 import { moveFieldUp, moveFieldDown } from '@/lib/field-ordering';
 import { DetailTableConfigDialog } from './detail-table-config';
 import { SubTabManager } from './sub-tab-manager';
@@ -48,13 +49,22 @@ interface FieldListProps {
   onDetailTableConfigsChange?: (configs: Record<string, DetailTableConfig>) => void;
   subTabConfigs?: Record<string, SubTabDefinition[]>;
   onSubTabConfigsChange?: (configs: Record<string, SubTabDefinition[]>) => void;
+  fieldSuggestions?: FieldSuggestions;
+}
+
+interface SubTabFields {
+  header: { field: SAFieldDefinition; originalIndex: number }[];
+  detail: Map<string, { field: SAFieldDefinition; originalIndex: number }[]>;
 }
 
 interface GroupedFields {
   list: { field: SAFieldDefinition; originalIndex: number }[];
   tabs: Map<string, {
+    // Fields without subTabName (main area)
     header: { field: SAFieldDefinition; originalIndex: number }[];
     detail: Map<string, { field: SAFieldDefinition; originalIndex: number }[]>;
+    // Fields with subTabName
+    subTabs: Map<string, SubTabFields>;
   }>;
 }
 
@@ -67,6 +77,7 @@ export function FieldList({
   onDetailTableConfigsChange,
   subTabConfigs = {},
   onSubTabConfigsChange,
+  fieldSuggestions,
 }: FieldListProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState('_list');
@@ -89,6 +100,9 @@ export function FieldList({
   const [showNewTabInput, setShowNewTabInput] = useState(false);
   const [deleteTabName, setDeleteTabName] = useState<string | null>(null);
 
+  // Active sub-tab per main tab (key = tabName, value = subTabLabel or '_main')
+  const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({});
+
   // Tab rename state
   const [renameTabName, setRenameTabName] = useState<string | null>(null);
   const [renameNewName, setRenameNewName] = useState('');
@@ -110,7 +124,7 @@ export function FieldList({
     }
   }, [newlyAddedIndex, fields.length]);
 
-  // Group fields by area and tabName, sorted by order
+  // Group fields by area, tabName, and subTabName, sorted by order
   const groupedFields = useMemo<GroupedFields>(() => {
     const result: GroupedFields = {
       list: [],
@@ -124,19 +138,39 @@ export function FieldList({
         const tabName = field.tabName || 'Main';
 
         if (!result.tabs.has(tabName)) {
-          result.tabs.set(tabName, { header: [], detail: new Map() });
+          result.tabs.set(tabName, { header: [], detail: new Map(), subTabs: new Map() });
         }
 
         const tab = result.tabs.get(tabName)!;
+        const subTabName = field.subTabName;
 
-        if (field.area === 'header') {
-          tab.header.push({ field, originalIndex: index });
-        } else if (field.area === 'detail') {
-          const relationship = field.relationship || 'default';
-          if (!tab.detail.has(relationship)) {
-            tab.detail.set(relationship, []);
+        if (subTabName) {
+          // Field belongs to a subTab
+          if (!tab.subTabs.has(subTabName)) {
+            tab.subTabs.set(subTabName, { header: [], detail: new Map() });
           }
-          tab.detail.get(relationship)!.push({ field, originalIndex: index });
+          const subTab = tab.subTabs.get(subTabName)!;
+
+          if (field.area === 'header') {
+            subTab.header.push({ field, originalIndex: index });
+          } else if (field.area === 'detail') {
+            const relationship = field.relationship || 'default';
+            if (!subTab.detail.has(relationship)) {
+              subTab.detail.set(relationship, []);
+            }
+            subTab.detail.get(relationship)!.push({ field, originalIndex: index });
+          }
+        } else {
+          // Field belongs to main area (no subTab)
+          if (field.area === 'header') {
+            tab.header.push({ field, originalIndex: index });
+          } else if (field.area === 'detail') {
+            const relationship = field.relationship || 'default';
+            if (!tab.detail.has(relationship)) {
+              tab.detail.set(relationship, []);
+            }
+            tab.detail.get(relationship)!.push({ field, originalIndex: index });
+          }
         }
       }
     });
@@ -147,6 +181,13 @@ export function FieldList({
       tab.header.sort((a, b) => a.field.order - b.field.order);
       tab.detail.forEach((detailFields) => {
         detailFields.sort((a, b) => a.field.order - b.field.order);
+      });
+      // Sort subTabs fields
+      tab.subTabs.forEach((subTab) => {
+        subTab.header.sort((a, b) => a.field.order - b.field.order);
+        subTab.detail.forEach((detailFields) => {
+          detailFields.sort((a, b) => a.field.order - b.field.order);
+        });
       });
     });
 
@@ -169,16 +210,16 @@ export function FieldList({
     return ordered;
   }, [fields]);
 
-  const handleAdd = (area: SAFieldDefinition['area'], tabName?: string, relationship?: string) => {
+  const handleAdd = (area: SAFieldDefinition['area'], tabName?: string, relationship?: string, subTabName?: string) => {
     // Calculate the next order value for the group
     let maxOrder = -1;
     fields.forEach((f) => {
       if (f.area === area) {
         if (area === 'list') {
           maxOrder = Math.max(maxOrder, f.order);
-        } else if (area === 'header' && (f.tabName || 'Main') === (tabName || 'Main')) {
+        } else if (area === 'header' && (f.tabName || 'Main') === (tabName || 'Main') && (f.subTabName || '') === (subTabName || '')) {
           maxOrder = Math.max(maxOrder, f.order);
-        } else if (area === 'detail' && (f.tabName || 'Main') === (tabName || 'Main') && (f.relationship || 'default') === (relationship || 'default')) {
+        } else if (area === 'detail' && (f.tabName || 'Main') === (tabName || 'Main') && (f.relationship || 'default') === (relationship || 'default') && (f.subTabName || '') === (subTabName || '')) {
           maxOrder = Math.max(maxOrder, f.order);
         }
       }
@@ -189,6 +230,7 @@ export function FieldList({
       area,
       tabName: tabName || '',
       relationship: relationship || '',
+      subTabName: subTabName || '',
       order: maxOrder + 1,
     };
     const newIndex = fields.length;
@@ -482,6 +524,7 @@ export function FieldList({
             tabNames={tabNames}
             currentTab={currentTab}
             labelInputRef={(ref) => registerFieldInputRef(originalIndex, ref)}
+            fieldSuggestions={fieldSuggestions}
           />
         ))
       )}
@@ -614,7 +657,80 @@ export function FieldList({
         {/* 各頁籤 */}
         {tabNames.map((tabName) => {
           const tab = groupedFields.tabs.get(tabName)!;
-          const relationships = Array.from(tab.detail.keys());
+          const subTabsConfig = getSubTabsForTab(tabName);
+          const sortedSubTabs = [...subTabsConfig].sort((a, b) => a.order - b.order);
+          const activeSubTab = activeSubTabs[tabName] || '_main';
+
+          // Helper to render detail tables section only
+          const renderDetailSection = (
+            detailFields: Map<string, { field: SAFieldDefinition; originalIndex: number }[]>,
+            subTabLabel?: string
+          ) => {
+            const detailRelationships = Array.from(detailFields.keys());
+            return (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-medium text-muted-foreground">明細表格</h4>
+                  <Button size="sm" variant="outline" onClick={() => handleAdd('detail', tabName, undefined, subTabLabel)}>
+                    新增明細欄位
+                  </Button>
+                </div>
+
+                {detailRelationships.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-md">
+                    尚無明細表格。新增明細欄位並設定「關聯」來建立表格。
+                  </div>
+                ) : (
+                  detailRelationships.map((relationship) => {
+                    const configKey = subTabLabel ? `${tabName}:${subTabLabel}:${relationship}` : `${tabName}:${relationship}`;
+                    const config = detailTableConfigs[configKey] || getDetailTableConfig(tabName, relationship);
+                    const hasConfig = config.label || config.orderBy || config.beanclass;
+                    return (
+                      <div key={relationship} className="border rounded-md p-4 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-sm">
+                              關聯: {relationship}
+                            </Badge>
+                            {config.label && (
+                              <Badge variant="secondary" className="text-xs">
+                                標題: {config.label}
+                              </Badge>
+                            )}
+                            {config.beanclass && (
+                              <Badge variant="secondary" className="text-xs">
+                                Bean
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenDetailTableConfig(tabName, relationship)}
+                              title="表格設定"
+                            >
+                              <Settings className={`h-4 w-4 ${hasConfig ? 'text-primary' : ''}`} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleAdd('detail', tabName, relationship, subTabLabel)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              新增欄位
+                            </Button>
+                          </div>
+                        </div>
+                        {renderFieldHeader()}
+                        {renderFieldList(detailFields.get(relationship)!, tabName)}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            );
+          };
 
           return (
             <TabsContent key={tabName} value={tabName} className="space-y-6">
@@ -653,17 +769,7 @@ export function FieldList({
                 </div>
               </div>
 
-              {/* Sub-Tab Manager */}
-              <div className="border rounded-md p-4 bg-muted/20">
-                <SubTabManager
-                  tabName={tabName}
-                  subTabs={getSubTabsForTab(tabName)}
-                  onSubTabsChange={(subTabs) => handleSubTabsChange(tabName, subTabs)}
-                  fieldCountBySubTab={getFieldCountBySubTab(tabName)}
-                />
-              </div>
-
-              {/* Header 欄位 */}
+              {/* 表頭欄位 - 共用區域 */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h4 className="text-sm font-medium text-muted-foreground">表頭欄位</h4>
@@ -677,67 +783,58 @@ export function FieldList({
                 </ScrollArea>
               </div>
 
-              {/* Detail 明細表格 */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium text-muted-foreground">明細表格</h4>
-                  <Button size="sm" variant="outline" onClick={() => handleAdd('detail', tabName)}>
-                    新增明細欄位
-                  </Button>
+              {/* 子頁籤切換區 - 用於明細表格 */}
+              <Tabs
+                value={activeSubTab}
+                onValueChange={(value) => setActiveSubTabs(prev => ({ ...prev, [tabName]: value }))}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <h4 className="text-sm font-medium text-muted-foreground mr-2">明細區域</h4>
+                  <TabsList className="flex-wrap h-auto">
+                    <TabsTrigger value="_main" className="flex items-center gap-1">
+                      主區域
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                        {Array.from(tab.detail.values()).reduce((sum, arr) => sum + arr.length, 0)}
+                      </Badge>
+                    </TabsTrigger>
+                    {sortedSubTabs.map((subTab) => {
+                      const subTabFields = tab.subTabs.get(subTab.label);
+                      const count = subTabFields
+                        ? Array.from(subTabFields.detail.values()).reduce((sum, arr) => sum + arr.length, 0)
+                        : 0;
+                      return (
+                        <TabsTrigger key={subTab.id} value={subTab.label} className="flex items-center gap-1">
+                          {subTab.label}
+                          <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                            {count}
+                          </Badge>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                  <SubTabManager
+                    tabName={tabName}
+                    subTabs={subTabsConfig}
+                    onSubTabsChange={(subTabs) => handleSubTabsChange(tabName, subTabs)}
+                    fieldCountBySubTab={getFieldCountBySubTab(tabName)}
+                  />
                 </div>
 
-                {relationships.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-md">
-                    尚無明細表格。新增明細欄位並設定「關聯」來建立表格。
-                  </div>
-                ) : (
-                  relationships.map((relationship) => {
-                    const config = getDetailTableConfig(tabName, relationship);
-                    const hasConfig = config.label || config.orderBy || config.beanclass;
-                    return (
-                      <div key={relationship} className="border rounded-md p-4 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-sm">
-                              關聯: {relationship}
-                            </Badge>
-                            {config.label && (
-                              <Badge variant="secondary" className="text-xs">
-                                標題: {config.label}
-                              </Badge>
-                            )}
-                            {config.beanclass && (
-                              <Badge variant="secondary" className="text-xs">
-                                Bean
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenDetailTableConfig(tabName, relationship)}
-                              title="表格設定"
-                            >
-                              <Settings className={`h-4 w-4 ${hasConfig ? 'text-primary' : ''}`} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleAdd('detail', tabName, relationship)}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              新增欄位
-                            </Button>
-                          </div>
-                        </div>
-                        {renderFieldHeader()}
-                        {renderFieldList(tab.detail.get(relationship)!, tabName)}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+                {/* 主區域明細 */}
+                <TabsContent value="_main" className="space-y-6">
+                  {renderDetailSection(tab.detail)}
+                </TabsContent>
+
+                {/* 各子頁籤明細 */}
+                {sortedSubTabs.map((subTab) => {
+                  const subTabFields = tab.subTabs.get(subTab.label) || { header: [], detail: new Map() };
+                  return (
+                    <TabsContent key={subTab.id} value={subTab.label} className="space-y-6">
+                      {renderDetailSection(subTabFields.detail, subTab.label)}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
             </TabsContent>
           );
         })}
@@ -761,6 +858,7 @@ export function FieldList({
             ? getAvailableSubTabLabels(fields[editingIndex].tabName || 'Main')
             : []
         }
+        fieldSuggestions={fieldSuggestions}
       />
 
       {/* Rename Tab Dialog */}

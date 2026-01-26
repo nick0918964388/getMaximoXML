@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SAFieldDefinition } from '@/lib/types';
+import { FieldSuggestions } from '@/hooks/use-field-suggestions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import { generateFieldName, generateFieldNameAsync } from '@/lib/field-processor';
 import { containsChinese } from '@/lib/translation-service';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,9 +39,10 @@ interface FieldFormProps {
   onClose: () => void;
   onSave: (field: SAFieldDefinition) => void;
   availableSubTabs?: string[];
+  fieldSuggestions?: FieldSuggestions;
 }
 
-export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [] }: FieldFormProps) {
+export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [], fieldSuggestions }: FieldFormProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const translateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLabelRef = useRef(field?.label || '');
@@ -133,11 +136,11 @@ export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [] 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="label">標籤 *</Label>
-                <Input
-                  id="label"
+                <AutocompleteInput
                   value={field.label}
-                  onChange={(e) => handleLabelChange(e.target.value)}
+                  onChange={handleLabelChange}
                   placeholder="顯示標籤"
+                  suggestions={fieldSuggestions?.labels || []}
                 />
               </div>
 
@@ -224,11 +227,11 @@ export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [] 
 
               <div className="space-y-2">
                 <Label htmlFor="tabName">頁籤名稱</Label>
-                <Input
-                  id="tabName"
+                <AutocompleteInput
                   value={field.tabName}
-                  onChange={(e) => handleChange({ tabName: e.target.value })}
+                  onChange={(value) => handleChange({ tabName: value })}
                   placeholder="頁籤群組名稱"
+                  suggestions={fieldSuggestions?.tabNames || []}
                 />
               </div>
 
@@ -263,21 +266,21 @@ export function FieldForm({ field, open, onClose, onSave, availableSubTabs = [] 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="lookup">查找表</Label>
-                <Input
-                  id="lookup"
+                <AutocompleteInput
                   value={field.lookup}
-                  onChange={(e) => handleChange({ lookup: e.target.value })}
+                  onChange={(value) => handleChange({ lookup: value })}
                   placeholder="查找表名稱"
+                  suggestions={fieldSuggestions?.lookups || []}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="relationship">關聯</Label>
-                <Input
-                  id="relationship"
+                <AutocompleteInput
                   value={field.relationship}
-                  onChange={(e) => handleChange({ relationship: e.target.value })}
+                  onChange={(value) => handleChange({ relationship: value })}
                   placeholder="例如：asset, location"
+                  suggestions={fieldSuggestions?.relationships || []}
                 />
               </div>
 

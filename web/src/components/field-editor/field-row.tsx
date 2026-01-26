@@ -2,8 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { SAFieldDefinition } from '@/lib/types';
+import { FieldSuggestions } from '@/hooks/use-field-suggestions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import { generateFieldName, generateFieldNameAsync } from '@/lib/field-processor';
 import { containsChinese } from '@/lib/translation-service';
 import {
@@ -37,6 +39,7 @@ interface FieldRowProps {
   tabNames: string[];
   currentTab: string;
   labelInputRef?: (ref: HTMLInputElement | null) => void;
+  fieldSuggestions?: FieldSuggestions;
 }
 
 export function FieldRow({
@@ -54,9 +57,20 @@ export function FieldRow({
   tabNames,
   currentTab,
   labelInputRef,
+  fieldSuggestions,
 }: FieldRowProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const lastLabelRef = useRef(field.label);
+
+  // Local state for relationship to prevent regrouping while typing
+  const [localRelationship, setLocalRelationship] = useState(field.relationship);
+  const relationshipRef = useRef(field.relationship);
+
+  // Sync local state when field.relationship changes from outside
+  if (field.relationship !== relationshipRef.current) {
+    relationshipRef.current = field.relationship;
+    setLocalRelationship(field.relationship);
+  }
 
   // Update label without translation (translation happens on blur)
   const handleLabelChange = (newLabel: string) => {
@@ -108,12 +122,13 @@ export function FieldRow({
 
       {/* 標籤 */}
       <div className="col-span-2">
-        <Input
+        <AutocompleteInput
           ref={labelInputRef}
           placeholder="標籤"
           value={field.label}
-          onChange={(e) => handleLabelChange(e.target.value)}
+          onChange={handleLabelChange}
           onBlur={handleLabelBlur}
+          suggestions={fieldSuggestions?.labels || []}
           className="h-8"
         />
       </div>
@@ -192,10 +207,16 @@ export function FieldRow({
 
       {/* 關聯 */}
       <div className="col-span-2">
-        <Input
+        <AutocompleteInput
           placeholder="關聯"
-          value={field.relationship}
-          onChange={(e) => onUpdate(index, { relationship: e.target.value })}
+          value={localRelationship}
+          onChange={setLocalRelationship}
+          onBlur={() => {
+            if (localRelationship !== field.relationship) {
+              onUpdate(index, { relationship: localRelationship });
+            }
+          }}
+          suggestions={fieldSuggestions?.relationships || []}
           className="h-8"
         />
       </div>

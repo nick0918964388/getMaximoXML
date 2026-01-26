@@ -17,6 +17,7 @@ import { PreviewPanel } from '@/components/preview-panel';
 import { HistoryList } from '@/components/history-list';
 import { UsernameDialog } from '@/components/username-dialog';
 import { downloadFile, downloadAsZip } from '@/components/download-buttons';
+import { useFieldSuggestions } from '@/hooks/use-field-suggestions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +62,9 @@ export default function XmlGeneratorPage() {
   const [usernameDialogOpen, setUsernameDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+
+  // Field suggestions for autocomplete
+  const fieldSuggestions = useFieldSuggestions(fields);
 
   // Migration state
   const [migrationDialogOpen, setMigrationDialogOpen] = useState(false);
@@ -388,6 +392,7 @@ export default function XmlGeneratorPage() {
                     onDetailTableConfigsChange={setDetailTableConfigs}
                     subTabConfigs={subTabConfigs}
                     onSubTabConfigsChange={setSubTabConfigs}
+                    fieldSuggestions={fieldSuggestions}
                   />
                 </CardContent>
               </Card>
