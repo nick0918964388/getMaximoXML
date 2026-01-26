@@ -115,6 +115,7 @@ describe('form-tab assemblers', () => {
       const result = generateFormTab(tab);
 
       expect(result).toContain('<tabgroup');
+      expect(result).toContain('style="form"');
       expect(result).toContain('<tab id="subtab_details"');
       expect(result).toContain('label="Details"');
       expect(result).toContain('<tab id="subtab_history"');

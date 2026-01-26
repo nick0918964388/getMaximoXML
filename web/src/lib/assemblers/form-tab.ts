@@ -95,7 +95,7 @@ export function generateFormTab(
       subTabParts.push(subTabXml);
     }
 
-    const nestedTabGroup = `<tabgroup id="${subTabGroupId}">
+    const nestedTabGroup = `<tabgroup id="${subTabGroupId}" style="form">
 \t\t\t\t\t\t\t${subTabParts.join('\n\t\t\t\t\t\t\t')}
 \t\t\t\t\t\t</tabgroup>`;
     parts.push(nestedTabGroup);
