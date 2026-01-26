@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox } from './textbox';
+import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton } from './textbox';
 import { ProcessedField, DEFAULT_FIELD } from '../types';
 import { resetIdGenerator } from '../utils/id-generator';
 
@@ -182,6 +182,65 @@ describe('textbox generators', () => {
       const result = generateMultipartTextbox(field);
 
       expect(result).not.toContain('descinputmode');
+    });
+  });
+
+  describe('generateStaticText', () => {
+    it('should generate basic statictext XML', () => {
+      const field = createProcessedField({
+        dataattribute: 'STATUS',
+      });
+
+      const result = generateStaticText(field);
+
+      expect(result).toContain('<statictext');
+      expect(result).toContain('dataattribute="STATUS"');
+      expect(result).toContain('/>');
+    });
+
+    it('should include label when provided', () => {
+      const field = createProcessedField({
+        dataattribute: 'STATUS',
+        label: 'Status',
+      });
+
+      const result = generateStaticText(field);
+
+      expect(result).toContain('label="Status"');
+    });
+  });
+
+  describe('generatePushbutton', () => {
+    it('should generate basic pushbutton XML', () => {
+      const field = createProcessedField({
+        label: 'Save',
+      });
+
+      const result = generatePushbutton(field);
+
+      expect(result).toContain('<pushbutton');
+      expect(result).toContain('/>');
+    });
+
+    it('should include label when provided', () => {
+      const field = createProcessedField({
+        label: 'Submit',
+      });
+
+      const result = generatePushbutton(field);
+
+      expect(result).toContain('label="Submit"');
+    });
+
+    it('should include mxevent when provided', () => {
+      const field = createProcessedField({
+        label: 'Save',
+        mxevent: 'SAVE',
+      });
+
+      const result = generatePushbutton(field);
+
+      expect(result).toContain('mxevent="SAVE"');
     });
   });
 });

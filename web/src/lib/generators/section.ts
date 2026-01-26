@@ -1,5 +1,5 @@
 import type { ProcessedField } from '../types';
-import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox } from './textbox';
+import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton } from './textbox';
 import { generateCheckbox } from './checkbox';
 import { generateAttachments } from './attachments';
 import { generateId } from '../utils/id-generator';
@@ -92,6 +92,10 @@ function generateFieldXml(field: ProcessedField): string {
       return generateMultipartTextbox(field);
     case 'attachments':
       return generateAttachments(field);
+    case 'statictext':
+      return generateStaticText(field);
+    case 'pushbutton':
+      return generatePushbutton(field);
     case 'textbox':
     default:
       return generateTextbox(field);

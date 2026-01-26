@@ -117,6 +117,8 @@ export interface SAFieldDefinition {
   descInputMode: InputMode;
   /** Sub-tab name within the parent tab */
   subTabName: string;
+  /** Maximo event for pushbutton */
+  mxevent: string;
 }
 
 /**
@@ -288,6 +290,7 @@ export const DEFAULT_FIELD: SAFieldDefinition = {
   descLabel: '',
   descInputMode: 'optional',
   subTabName: '',
+  mxevent: '',
 };
 
 /**

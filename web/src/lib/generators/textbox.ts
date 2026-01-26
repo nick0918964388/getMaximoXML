@@ -132,3 +132,41 @@ export function generateMultipartTextbox(field: ProcessedField): string {
   const attrString = buildAttributes(attrs);
   return `<multiparttextbox ${attrString}/>`;
 }
+
+/**
+ * Generate a statictext XML element
+ */
+export function generateStaticText(field: ProcessedField): string {
+  const attrs: Record<string, string | undefined> = {
+    dataattribute: field.dataattribute,
+    id: generateId(),
+  };
+
+  if (field.label) {
+    attrs.label = field.label;
+  }
+
+  const attrString = buildAttributes(attrs);
+  return `<statictext ${attrString}/>`;
+}
+
+/**
+ * Generate a pushbutton XML element
+ */
+export function generatePushbutton(field: ProcessedField): string {
+  const attrs: Record<string, string | undefined> = {
+    id: generateId(),
+  };
+
+  if (field.label) {
+    attrs.label = field.label;
+  }
+
+  // Use mxevent if provided, otherwise use a default event
+  if (field.mxevent) {
+    attrs.mxevent = field.mxevent;
+  }
+
+  const attrString = buildAttributes(attrs);
+  return `<pushbutton ${attrString}/>`;
+}
