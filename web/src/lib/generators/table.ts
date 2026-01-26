@@ -7,6 +7,38 @@ import {
 import { generateId } from '../utils/id-generator';
 
 /**
+ * Generate a buttongroup with pushbutton elements
+ */
+function generateButtongroup(buttonFields: ProcessedField[]): string {
+  const buttongroupId = generateId();
+
+  const buttons = buttonFields.map((field, index) => {
+    const attrs: string[] = [];
+
+    // First button with dialogok event gets default="true"
+    if (index === 0 && field.mxevent === 'dialogok') {
+      attrs.push('default="true"');
+    }
+
+    attrs.push(`id="${generateId()}"`);
+
+    if (field.label) {
+      attrs.push(`label="${field.label}"`);
+    }
+
+    if (field.mxevent) {
+      attrs.push(`mxevent="${field.mxevent}"`);
+    }
+
+    return `<pushbutton ${attrs.join(' ')}/>`;
+  });
+
+  return `<buttongroup id="${buttongroupId}">
+\t\t\t\t\t\t\t\t\t\t\t\t\t\t${buttons.join('\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t')}
+\t\t\t\t\t\t\t\t\t\t\t\t\t</buttongroup>`;
+}
+
+/**
  * Generate a detail table XML element
  */
 export function generateTable(
@@ -19,8 +51,12 @@ export function generateTable(
   const tableId = generateId();
   const tablebodyId = generateId();
 
+  // Separate fields into tablecol fields and pushbutton fields
+  const tablecolFields = fields.filter((field) => field.type !== 'pushbutton');
+  const buttonFields = fields.filter((field) => field.type === 'pushbutton');
+
   // Generate tablecol elements
-  const columns = fields
+  const columns = tablecolFields
     .map((field) => generateTablecol(field, false, true))
     .join('\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t');
 
@@ -33,10 +69,21 @@ export function generateTable(
     tableAttrs += ` beanclass="${beanclass}"`;
   }
 
-  return `<table ${tableAttrs}>
-\t\t\t\t\t\t\t\t\t\t\t\t\t<tablebody displayrowsperpage="10" id="${tablebodyId}">
+  // Build table content
+  const tablebodyContent = columns
+    ? `<tablebody displayrowsperpage="10" id="${tablebodyId}">
 \t\t\t\t\t\t\t\t\t\t\t\t\t\t${columns}
-\t\t\t\t\t\t\t\t\t\t\t\t\t</tablebody>
+\t\t\t\t\t\t\t\t\t\t\t\t\t</tablebody>`
+    : `<tablebody displayrowsperpage="10" id="${tablebodyId}">
+\t\t\t\t\t\t\t\t\t\t\t\t\t</tablebody>`;
+
+  // Add buttongroup if there are pushbutton fields
+  const buttongroupContent = buttonFields.length > 0
+    ? `\n\t\t\t\t\t\t\t\t\t\t\t\t\t${generateButtongroup(buttonFields)}`
+    : '';
+
+  return `<table ${tableAttrs}>
+\t\t\t\t\t\t\t\t\t\t\t\t\t${tablebodyContent}${buttongroupContent}
 \t\t\t\t\t\t\t\t\t\t\t\t</table>`;
 }
 
