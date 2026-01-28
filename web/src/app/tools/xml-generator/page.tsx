@@ -195,8 +195,20 @@ export default function XmlGeneratorPage() {
       // Reset ID generator for consistent output
       resetIdGenerator();
 
+      // Sanitize fields: clear stale subTabName references not in subTabConfigs
+      const sanitizedFields = fields.map(f => {
+        if (f.subTabName) {
+          const tabSubTabs = subTabConfigs[f.tabName || 'Main'] || [];
+          const exists = tabSubTabs.some(st => st.label === f.subTabName);
+          if (!exists) {
+            return { ...f, subTabName: undefined };
+          }
+        }
+        return f;
+      });
+
       // Process fields into application definition
-      const appDef = processFields(fields);
+      const appDef = processFields(sanitizedFields);
 
       // Apply custom mainDetailLabels from state
       for (const [tabName, tab] of appDef.tabs) {

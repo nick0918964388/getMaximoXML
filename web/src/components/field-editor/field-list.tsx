@@ -461,6 +461,26 @@ export function FieldList({
         [tabName]: subTabs,
       });
     }
+
+    // Clean up fields referencing deleted sub-tabs
+    const currentLabels = getSubTabsForTab(tabName);
+    const newLabels = new Set(subTabs.map(st => st.label));
+    const removedLabels = currentLabels
+      .map(st => st.label)
+      .filter(label => !newLabels.has(label));
+
+    if (removedLabels.length > 0) {
+      const removedSet = new Set(removedLabels);
+      const updatedFields = fields.map(f => {
+        if (f.tabName === tabName && f.subTabName && removedSet.has(f.subTabName)) {
+          return { ...f, subTabName: undefined };
+        }
+        return f;
+      });
+      if (updatedFields.some((f, i) => f !== fields[i])) {
+        onFieldsChange(updatedFields);
+      }
+    }
   };
 
   // Get available subTab labels for a tab
