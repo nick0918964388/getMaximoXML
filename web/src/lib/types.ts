@@ -150,6 +150,8 @@ export interface TabDefinition {
     headerFields: ProcessedField[];
     detailTables: Map<string, ProcessedField[]>;
   }>;
+  /** Label for the main detail area sub-tab (default: "主區域") */
+  mainDetailLabel: string;
 }
 
 /**
@@ -254,6 +256,8 @@ export interface SavedProject {
   dialogTemplates: DialogTemplate[];
   /** Sub-tab configurations (key = tabName) */
   subTabConfigs: Record<string, SubTabDefinition[]>;
+  /** Main detail labels (key = tabName, value = label) */
+  mainDetailLabels: Record<string, string>;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */

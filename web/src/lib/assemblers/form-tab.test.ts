@@ -21,6 +21,7 @@ describe('form-tab assemblers', () => {
     headerFields: [],
     detailTables: new Map(),
     subTabs: new Map(),
+    mainDetailLabel: '主區域',
     ...overrides,
   });
 

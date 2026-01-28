@@ -144,6 +144,7 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
       headerFields: [],
       detailTables: new Map(),
       subTabs: new Map(),
+      mainDetailLabel: '主區域',
     });
   }
 
@@ -163,6 +164,7 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
             headerFields: [],
             detailTables: new Map(),
             subTabs: new Map(),
+            mainDetailLabel: '主區域',
           });
         }
 

@@ -49,6 +49,8 @@ interface FieldListProps {
   onDetailTableConfigsChange?: (configs: Record<string, DetailTableConfig>) => void;
   subTabConfigs?: Record<string, SubTabDefinition[]>;
   onSubTabConfigsChange?: (configs: Record<string, SubTabDefinition[]>) => void;
+  mainDetailLabels?: Record<string, string>;
+  onMainDetailLabelsChange?: (labels: Record<string, string>) => void;
   fieldSuggestions?: FieldSuggestions;
 }
 
@@ -77,6 +79,8 @@ export function FieldList({
   onDetailTableConfigsChange,
   subTabConfigs = {},
   onSubTabConfigsChange,
+  mainDetailLabels = {},
+  onMainDetailLabelsChange,
   fieldSuggestions,
 }: FieldListProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -106,6 +110,10 @@ export function FieldList({
   // Tab rename state
   const [renameTabName, setRenameTabName] = useState<string | null>(null);
   const [renameNewName, setRenameNewName] = useState('');
+
+  // Main detail label rename state
+  const [renameMainDetailTab, setRenameMainDetailTab] = useState<string | null>(null);
+  const [renameMainDetailLabel, setRenameMainDetailLabel] = useState('');
 
   // Track newly added field for auto-focus
   const [newlyAddedIndex, setNewlyAddedIndex] = useState<number | null>(null);
@@ -792,11 +800,26 @@ export function FieldList({
                   <h4 className="text-sm font-medium text-muted-foreground mr-2">明細區域</h4>
                   <TabsList className="flex-wrap h-auto">
                     <TabsTrigger value="_main" className="flex items-center gap-1">
-                      主區域
+                      {mainDetailLabels[tabName] || '主區域'}
                       <Badge variant="secondary" className="ml-1 h-5 px-1.5">
                         {Array.from(tab.detail.values()).reduce((sum, arr) => sum + arr.length, 0)}
                       </Badge>
                     </TabsTrigger>
+                    {onMainDetailLabelsChange && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 px-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameMainDetailTab(tabName);
+                          setRenameMainDetailLabel(mainDetailLabels[tabName] || '主區域');
+                        }}
+                        title="重新命名主區域"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
                     {sortedSubTabs.map((subTab, index) => {
                       const subTabFields = tab.subTabs.get(subTab.label);
                       const count = subTabFields
@@ -958,6 +981,62 @@ export function FieldList({
         onSave={handleSaveDetailTableConfig}
         relationship={configDialogRelationship}
       />
+
+      {/* Rename Main Detail Label Dialog */}
+      <Dialog open={renameMainDetailTab !== null} onOpenChange={() => {
+        setRenameMainDetailTab(null);
+        setRenameMainDetailLabel('');
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>重新命名主區域</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mainDetailLabel">名稱</Label>
+              <Input
+                id="mainDetailLabel"
+                value={renameMainDetailLabel}
+                onChange={(e) => setRenameMainDetailLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renameMainDetailTab && renameMainDetailLabel.trim()) {
+                    onMainDetailLabelsChange?.({
+                      ...mainDetailLabels,
+                      [renameMainDetailTab]: renameMainDetailLabel.trim(),
+                    });
+                    setRenameMainDetailTab(null);
+                    setRenameMainDetailLabel('');
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setRenameMainDetailTab(null);
+              setRenameMainDetailLabel('');
+            }}>
+              取消
+            </Button>
+            <Button
+              onClick={() => {
+                if (renameMainDetailTab && renameMainDetailLabel.trim()) {
+                  onMainDetailLabelsChange?.({
+                    ...mainDetailLabels,
+                    [renameMainDetailTab]: renameMainDetailLabel.trim(),
+                  });
+                  setRenameMainDetailTab(null);
+                  setRenameMainDetailLabel('');
+                }
+              }}
+              disabled={!renameMainDetailLabel.trim()}
+            >
+              確定
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,6 +14,7 @@ interface DraftData {
   detailTableConfigs: Record<string, DetailTableConfig>;
   dialogTemplates: DialogTemplate[];
   subTabConfigs: Record<string, SubTabDefinition[]>;
+  mainDetailLabels: Record<string, string>;
   projectId: string | null;
   projectName: string;
   savedAt: string;
@@ -25,6 +26,7 @@ interface UseAutoSaveOptions {
   detailTableConfigs: Record<string, DetailTableConfig>;
   dialogTemplates: DialogTemplate[];
   subTabConfigs: Record<string, SubTabDefinition[]>;
+  mainDetailLabels?: Record<string, string>;
   projectId: string | null;
   projectName: string;
   enabled?: boolean;
@@ -75,6 +77,7 @@ export function useAutoSave({
   detailTableConfigs,
   dialogTemplates,
   subTabConfigs,
+  mainDetailLabels = {},
   projectId,
   projectName,
   enabled = true,
@@ -93,6 +96,7 @@ export function useAutoSave({
         detailTableConfigs,
         dialogTemplates,
         subTabConfigs,
+        mainDetailLabels,
         projectId,
         projectName,
         savedAt: new Date().toISOString(),
@@ -104,7 +108,7 @@ export function useAutoSave({
       console.error('Auto-save error:', error);
       setStatus('error');
     }
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels, projectId, projectName]);
 
   // Debounced auto-save on changes
   useEffect(() => {

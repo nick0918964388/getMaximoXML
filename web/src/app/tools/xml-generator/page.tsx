@@ -49,6 +49,7 @@ export default function XmlGeneratorPage() {
   const [detailTableConfigs, setDetailTableConfigs] = useState<Record<string, DetailTableConfig>>({});
   const [dialogTemplates, setDialogTemplates] = useState<DialogTemplate[]>([]);
   const [subTabConfigs, setSubTabConfigs] = useState<Record<string, SubTabDefinition[]>>({});
+  const [mainDetailLabels, setMainDetailLabels] = useState<Record<string, string>>({});
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -132,6 +133,7 @@ export default function XmlGeneratorPage() {
     detailTableConfigs,
     dialogTemplates,
     subTabConfigs,
+    mainDetailLabels,
     projectId: currentProjectId,
     projectName,
     enabled: true,
@@ -156,6 +158,7 @@ export default function XmlGeneratorPage() {
       setDetailTableConfigs(draft.detailTableConfigs || {});
       setDialogTemplates(draft.dialogTemplates || []);
       setSubTabConfigs(draft.subTabConfigs || {});
+      setMainDetailLabels(draft.mainDetailLabels || {});
       setCurrentProjectId(draft.projectId);
       setProjectName(draft.projectName);
     }
@@ -195,6 +198,13 @@ export default function XmlGeneratorPage() {
       // Process fields into application definition
       const appDef = processFields(fields);
 
+      // Apply custom mainDetailLabels from state
+      for (const [tabName, tab] of appDef.tabs) {
+        if (mainDetailLabels[tabName]) {
+          tab.mainDetailLabel = mainDetailLabels[tabName];
+        }
+      }
+
       // Generate XML with detail table configs and dialog templates
       const xml = generateApplication(appDef, metadata, detailTableConfigs, dialogTemplates);
 
@@ -215,7 +225,7 @@ export default function XmlGeneratorPage() {
       console.error('Generation error:', error);
       return { xmlContent: '', sqlContent: '' };
     }
-  }, [fields, metadata, detailTableConfigs, dialogTemplates]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, mainDetailLabels]);
 
   // Download handlers
   const handleDownloadXml = useCallback(() => {
@@ -281,6 +291,7 @@ export default function XmlGeneratorPage() {
     setDetailTableConfigs(project.detailTableConfigs || {});
     setDialogTemplates(project.dialogTemplates || []);
     setSubTabConfigs(project.subTabConfigs || {});
+    setMainDetailLabels(project.mainDetailLabels || {});
     setCurrentProjectId(project.id);
     setProjectName(project.name);
     setActiveTab('editor');
@@ -293,6 +304,7 @@ export default function XmlGeneratorPage() {
     setDetailTableConfigs({});
     setDialogTemplates([]);
     setSubTabConfigs({});
+    setMainDetailLabels({});
     setCurrentProjectId(null);
     setProjectName('');
     clearDraft();
@@ -392,6 +404,8 @@ export default function XmlGeneratorPage() {
                     onDetailTableConfigsChange={setDetailTableConfigs}
                     subTabConfigs={subTabConfigs}
                     onSubTabConfigsChange={setSubTabConfigs}
+                    mainDetailLabels={mainDetailLabels}
+                    onMainDetailLabelsChange={setMainDetailLabels}
                     fieldSuggestions={fieldSuggestions}
                   />
                 </CardContent>
