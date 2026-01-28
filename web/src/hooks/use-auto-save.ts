@@ -153,6 +153,7 @@ export function useAutoSave({
           detailTableConfigs,
           dialogTemplates,
           subTabConfigs,
+          mainDetailLabels,
           projectId,
           projectName,
           savedAt: new Date().toISOString(),
