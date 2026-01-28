@@ -269,7 +269,8 @@ export default function XmlGeneratorPage() {
         username,
         detailTableConfigs,
         dialogTemplates,
-        subTabConfigs
+        subTabConfigs,
+        mainDetailLabels
       );
       if (saved) {
         setCurrentProjectId(saved.id);

@@ -1,7 +1,7 @@
 import initSqlJs, { Database } from 'sql.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ApplicationMetadata, SAFieldDefinition, DetailTableConfig, DialogTemplate } from './types';
+import type { ApplicationMetadata, SAFieldDefinition, DetailTableConfig, DialogTemplate, SubTabDefinition } from './types';
 
 // Database project with username
 export interface DbProject {
@@ -12,6 +12,8 @@ export interface DbProject {
   fields: SAFieldDefinition[];
   detailTableConfigs: Record<string, DetailTableConfig>;
   dialogTemplates: DialogTemplate[];
+  subTabConfigs: Record<string, SubTabDefinition[]>;
+  mainDetailLabels: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +27,8 @@ interface DbProjectRow {
   fields: string;   // JSON
   detail_table_configs: string | null; // JSON
   dialog_templates: string | null;     // JSON
+  sub_tab_configs: string | null;      // JSON
+  main_detail_labels: string | null;   // JSON
   created_at: string;
   updated_at: string;
 }
@@ -122,6 +126,18 @@ function initSchema(database: Database): void {
   } catch {
     // Column already exists
   }
+
+  try {
+    database.run(`ALTER TABLE projects ADD COLUMN sub_tab_configs TEXT`);
+  } catch {
+    // Column already exists
+  }
+
+  try {
+    database.run(`ALTER TABLE projects ADD COLUMN main_detail_labels TEXT`);
+  } catch {
+    // Column already exists
+  }
 }
 
 /**
@@ -162,6 +178,8 @@ function rowToProject(row: DbProjectRow): DbProject {
     fields: JSON.parse(row.fields),
     detailTableConfigs: row.detail_table_configs ? JSON.parse(row.detail_table_configs) : {},
     dialogTemplates: row.dialog_templates ? JSON.parse(row.dialog_templates) : [],
+    subTabConfigs: row.sub_tab_configs ? JSON.parse(row.sub_tab_configs) : {},
+    mainDetailLabels: row.main_detail_labels ? JSON.parse(row.main_detail_labels) : {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -174,8 +192,8 @@ export function insertProject(project: DbProject): void {
   if (!db) throw new Error('Database not initialized');
 
   db.run(
-    `INSERT INTO projects (id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO projects (id, username, name, metadata, fields, detail_table_configs, dialog_templates, sub_tab_configs, main_detail_labels, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       project.id,
       project.username,
@@ -184,6 +202,8 @@ export function insertProject(project: DbProject): void {
       JSON.stringify(project.fields),
       JSON.stringify(project.detailTableConfigs || {}),
       JSON.stringify(project.dialogTemplates || []),
+      JSON.stringify(project.subTabConfigs || {}),
+      JSON.stringify(project.mainDetailLabels || {}),
       project.createdAt,
       project.updatedAt,
     ]
@@ -201,7 +221,7 @@ export function getProjectById(id: string): DbProject | null {
   if (!db) throw new Error('Database not initialized');
 
   const result = db.exec(
-    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at
+    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, sub_tab_configs, main_detail_labels, created_at, updated_at
      FROM projects WHERE id = ?`,
     [id]
   );
@@ -221,6 +241,8 @@ export function getProjectById(id: string): DbProject | null {
     fields: values[columns.indexOf('fields')] as string,
     detail_table_configs: values[columns.indexOf('detail_table_configs')] as string | null,
     dialog_templates: values[columns.indexOf('dialog_templates')] as string | null,
+    sub_tab_configs: values[columns.indexOf('sub_tab_configs')] as string | null,
+    main_detail_labels: values[columns.indexOf('main_detail_labels')] as string | null,
     created_at: values[columns.indexOf('created_at')] as string,
     updated_at: values[columns.indexOf('updated_at')] as string,
   };
@@ -235,7 +257,7 @@ export function getProjectsByUsername(username: string): DbProject[] {
   if (!db) throw new Error('Database not initialized');
 
   const result = db.exec(
-    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, created_at, updated_at
+    `SELECT id, username, name, metadata, fields, detail_table_configs, dialog_templates, sub_tab_configs, main_detail_labels, created_at, updated_at
      FROM projects WHERE username = ? ORDER BY updated_at DESC`,
     [username]
   );
@@ -301,6 +323,16 @@ export function updateProject(
   if (updates.dialogTemplates !== undefined) {
     setClauses.push('dialog_templates = ?');
     values.push(JSON.stringify(updates.dialogTemplates));
+  }
+
+  if (updates.subTabConfigs !== undefined) {
+    setClauses.push('sub_tab_configs = ?');
+    values.push(JSON.stringify(updates.subTabConfigs));
+  }
+
+  if (updates.mainDetailLabels !== undefined) {
+    setClauses.push('main_detail_labels = ?');
+    values.push(JSON.stringify(updates.mainDetailLabels));
   }
 
   if (updates.updatedAt !== undefined) {

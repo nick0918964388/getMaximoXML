@@ -57,7 +57,8 @@ export async function saveProject(
   username?: string,
   detailTableConfigs: Record<string, DetailTableConfig> = {},
   dialogTemplates: DialogTemplate[] = [],
-  subTabConfigs: Record<string, SubTabDefinition[]> = {}
+  subTabConfigs: Record<string, SubTabDefinition[]> = {},
+  mainDetailLabels: Record<string, string> = {}
 ): Promise<SavedProject | null> {
   const user = username || getUsername();
   if (!user) return null;
@@ -68,7 +69,7 @@ export async function saveProject(
       const response = await fetch(`/api/projects/${existingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, metadata, fields, detailTableConfigs, dialogTemplates, subTabConfigs }),
+        body: JSON.stringify({ name, metadata, fields, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels }),
       });
 
       if (!response.ok) return null;
@@ -87,6 +88,7 @@ export async function saveProject(
         detailTableConfigs,
         dialogTemplates,
         subTabConfigs,
+        mainDetailLabels,
       }),
     });
 
@@ -160,6 +162,7 @@ export async function importProject(json: string, username?: string): Promise<Sa
         detailTableConfigs: project.detailTableConfigs || {},
         dialogTemplates: project.dialogTemplates || [],
         subTabConfigs: project.subTabConfigs || {},
+        mainDetailLabels: project.mainDetailLabels || {},
       }),
     });
 

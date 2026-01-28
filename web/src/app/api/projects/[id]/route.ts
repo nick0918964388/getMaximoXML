@@ -61,6 +61,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.fields !== undefined) updates.fields = body.fields;
     if (body.detailTableConfigs !== undefined) updates.detailTableConfigs = body.detailTableConfigs;
     if (body.dialogTemplates !== undefined) updates.dialogTemplates = body.dialogTemplates;
+    if (body.subTabConfigs !== undefined) updates.subTabConfigs = body.subTabConfigs;
+    if (body.mainDetailLabels !== undefined) updates.mainDetailLabels = body.mainDetailLabels;
 
     updateProject(id, updates);
 
