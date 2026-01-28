@@ -1,4 +1,4 @@
-import { LucideIcon, FileCode } from 'lucide-react';
+import { LucideIcon, FileCode, FileSearch } from 'lucide-react';
 
 /**
  * Tool configuration interface
@@ -51,6 +51,14 @@ export const menuConfig: MenuConfig = {
       description: '產生 Maximo 簡報 XML 和 SQL 檔案',
       icon: FileCode,
       path: '/tools/xml-generator',
+      enabled: true,
+    },
+    {
+      id: 'fmb-converter',
+      name: 'FMB 轉換器',
+      description: '解析 Oracle Forms XML 並轉換為 Maximo XML',
+      icon: FileSearch,
+      path: '/tools/fmb-converter',
       enabled: true,
     },
   ],
