@@ -276,6 +276,8 @@ export function getProjectsByUsername(username: string): DbProject[] {
       fields: values[columns.indexOf('fields')] as string,
       detail_table_configs: values[columns.indexOf('detail_table_configs')] as string | null,
       dialog_templates: values[columns.indexOf('dialog_templates')] as string | null,
+      sub_tab_configs: values[columns.indexOf('sub_tab_configs')] as string | null,
+      main_detail_labels: values[columns.indexOf('main_detail_labels')] as string | null,
       created_at: values[columns.indexOf('created_at')] as string,
       updated_at: values[columns.indexOf('updated_at')] as string,
     };
