@@ -136,16 +136,20 @@ export function processFields(fields: SAFieldDefinition[]): ApplicationDefinitio
     break;
   }
 
-  // Ensure parent tab exists
-  if (!tabsMap.has(parentTabName)) {
-    tabsMap.set(parentTabName, {
-      id: `tab_${parentTabName.toLowerCase().replace(/\s+/g, '_')}`,
-      label: parentTabName,
-      headerFields: [],
-      detailTables: new Map(),
-      subTabs: new Map(),
-      mainDetailLabel: '主區域',
-    });
+  // Pre-create all header tabs (and parent tab) to avoid ordering issues
+  // (detail fields for a tab may appear before the tab's header fields)
+  const tabsToCreate = new Set([parentTabName, ...headerTabNames]);
+  for (const name of tabsToCreate) {
+    if (!tabsMap.has(name)) {
+      tabsMap.set(name, {
+        id: `tab_${name.toLowerCase().replace(/\s+/g, '_')}`,
+        label: name,
+        headerFields: [],
+        detailTables: new Map(),
+        subTabs: new Map(),
+        mainDetailLabel: '主區域',
+      });
+    }
   }
 
   for (const field of processedFields) {
