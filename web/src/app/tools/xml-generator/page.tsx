@@ -274,6 +274,7 @@ export default function XmlGeneratorPage() {
       if (saved) {
         setCurrentProjectId(saved.id);
         setSaveDialogOpen(false);
+        clearDraft();
         // Refresh history list after saving
         setHistoryRefreshKey(prev => prev + 1);
       }
