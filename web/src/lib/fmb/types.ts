@@ -62,9 +62,18 @@ export interface FmbTabPage {
   attributes: Record<string, string>;
 }
 
+export interface FmbLovColumnMapping {
+  name: string;
+  title?: string;
+  returnItem: string;
+  displayWidth?: number;
+}
+
 export interface FmbLov {
   name: string;
   title?: string;
+  recordGroupName?: string;
+  columnMappings: FmbLovColumnMapping[];
   attributes: Record<string, string>;
 }
 

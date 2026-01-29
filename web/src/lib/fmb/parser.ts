@@ -7,6 +7,7 @@ import type {
   FmbCanvas,
   FmbTabPage,
   FmbLov,
+  FmbLovColumnMapping,
 } from './types';
 
 /**
@@ -102,7 +103,18 @@ function parseLovs(parent: Element): FmbLov[] {
   return Array.from(findChildren(parent, 'LOV')).map((el) => ({
     name: nsAttr(el, 'Name') ?? '',
     title: nsAttr(el, 'Title'),
+    recordGroupName: nsAttr(el, 'RecordGroupName'),
+    columnMappings: parseLovColumnMappings(el),
     attributes: allAttributes(el),
+  }));
+}
+
+function parseLovColumnMappings(parent: Element): FmbLovColumnMapping[] {
+  return Array.from(findChildren(parent, 'LOVColumnMapping')).map((el) => ({
+    name: nsAttr(el, 'Name') ?? '',
+    title: nsAttr(el, 'Title'),
+    returnItem: nsAttr(el, 'ReturnItem') ?? '',
+    displayWidth: nsAttrInt(el, 'DisplayWidth'),
   }));
 }
 

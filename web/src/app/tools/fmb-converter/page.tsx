@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UploadPanel } from '@/components/fmb/upload-panel';
 import { TreeViewer } from '@/components/fmb/tree-viewer';
 import { ConverterPanel } from '@/components/fmb/converter-panel';
+import { SpecPanel } from '@/components/fmb/spec-panel';
 import { UploadHistory } from '@/components/fmb/upload-history';
 import { parseFmbXml } from '@/lib/fmb/parser';
 import { addUploadHistory } from '@/lib/fmb/history';
@@ -101,12 +102,16 @@ export default function FmbConverterPage() {
                 <TabsList className="mb-4">
                   <TabsTrigger value="tree">結構瀏覽</TabsTrigger>
                   <TabsTrigger value="convert">轉換 Maximo</TabsTrigger>
+                  <TabsTrigger value="spec">規格文檔</TabsTrigger>
                 </TabsList>
                 <TabsContent value="tree">
                   <TreeViewer module={module} />
                 </TabsContent>
                 <TabsContent value="convert">
                   <ConverterPanel module={module} />
+                </TabsContent>
+                <TabsContent value="spec">
+                  <SpecPanel module={module} />
                 </TabsContent>
               </Tabs>
             </>
