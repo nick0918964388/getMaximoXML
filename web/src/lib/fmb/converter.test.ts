@@ -604,4 +604,41 @@ describe('convertFmbToMaximo', () => {
     expect(slipNoField).toBeDefined();
     expect(slipNoField?.type).toBe('textbox');
   });
+
+  it('should convert TEXT_ITEM + TEXT_ITEM (description) pair to multiparttextbox', () => {
+    // DEPT_NAME is a TEXT_ITEM (not DISPLAY_ITEM) but used as description field
+    const moduleWithTextDesc: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'B1PCS1005',
+          singleRecord: true,
+          queryDataSource: 'PCS1005',
+          items: [
+            // DEPARTMENT_CODE (Text Item) followed by DEPT_NAME (Text Item with empty prompt)
+            { name: 'DEPARTMENT_CODE', itemType: 'TEXT_ITEM', prompt: 'Department', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'DEPT_NAME', itemType: 'TEXT_ITEM', prompt: '', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithTextDesc);
+
+    // DEPARTMENT_CODE should become multiparttextbox with DEPT_NAME as descrAttribute
+    const deptField = result.fields.find((f) => f.fieldName === 'DEPARTMENT_CODE' && f.area !== 'list');
+    expect(deptField).toBeDefined();
+    expect(deptField?.type).toBe('multiparttextbox');
+    expect(deptField?.descrAttribute).toBe('DEPT_NAME');
+
+    // DEPT_NAME should NOT appear as separate field (merged into multiparttextbox)
+    const deptNameField = result.fields.find((f) => f.fieldName === 'DEPT_NAME' && f.area !== 'list');
+    expect(deptNameField).toBeUndefined();
+  });
 });

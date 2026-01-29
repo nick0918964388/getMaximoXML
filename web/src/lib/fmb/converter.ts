@@ -58,18 +58,24 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
       continue;
     }
 
-    // Pre-process: identify TEXT_ITEM + DISPLAY_ITEM pairs for multiparttextbox
-    // A DISPLAY_ITEM with empty prompt following a TEXT_ITEM becomes its descrAttribute
-    const displayItemMap = new Map<string, string>(); // TEXT_ITEM name -> DISPLAY_ITEM name
+    // Pre-process: identify TEXT_ITEM + description field pairs for multiparttextbox
+    // A description field (DISPLAY_ITEM or TEXT_ITEM with empty prompt) following a TEXT_ITEM
+    // becomes its descrAttribute
+    const displayItemMap = new Map<string, string>(); // TEXT_ITEM name -> description field name
     for (let i = 0; i < block.items.length - 1; i++) {
       const current = block.items[i];
       const next = block.items[i + 1];
 
-      // Check if current is TEXT_ITEM and next is DISPLAY_ITEM with empty/no prompt
-      if (current.itemType === 'TEXT_ITEM' &&
-          next.itemType === 'DISPLAY_ITEM' &&
-          (!next.prompt || next.prompt === '') &&
-          current.canvas === next.canvas) {
+      // Check if current is TEXT_ITEM and next is a description field
+      // Description field can be:
+      // 1. DISPLAY_ITEM with empty/no prompt
+      // 2. TEXT_ITEM with empty/no prompt (often used as display-only field)
+      const isNextDescriptionField =
+        (next.itemType === 'DISPLAY_ITEM' || next.itemType === 'TEXT_ITEM') &&
+        (!next.prompt || next.prompt === '') &&
+        current.canvas === next.canvas;
+
+      if (current.itemType === 'TEXT_ITEM' && isNextDescriptionField) {
         displayItemMap.set(current.name, next.name);
         mergedDisplayItems.add(next.name);
       }
