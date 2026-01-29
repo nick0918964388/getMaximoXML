@@ -209,6 +209,43 @@ describe('form-tab assemblers', () => {
     });
   });
 
+  describe('generateFormTab pushbutton handling', () => {
+    it('should not wrap detail pushbuttons in table element', () => {
+      const detailTables = new Map<string, ProcessedField[]>();
+      detailTables.set('default', [
+        createProcessedField({ label: 'Get Default Data', type: 'pushbutton', area: 'detail' }),
+      ]);
+
+      const tab = createTabDefinition({ detailTables });
+      const result = generateFormTab(tab);
+
+      // Pushbutton should be rendered directly, not in a table
+      expect(result).toContain('<pushbutton');
+      expect(result).toContain('label="Get Default Data"');
+      // Should NOT have a table wrapper for pushbutton-only relationship
+      expect(result).not.toContain('relationship="default"');
+    });
+
+    it('should render regular detail fields in table but pushbuttons separately', () => {
+      const detailTables = new Map<string, ProcessedField[]>();
+      detailTables.set('WORKLOG', [
+        createProcessedField({ dataattribute: 'LOGTYPE', label: 'Log Type', type: 'textbox', area: 'detail' }),
+        createProcessedField({ label: 'Add Entry', type: 'pushbutton', area: 'detail' }),
+      ]);
+
+      const tab = createTabDefinition({ detailTables });
+      const result = generateFormTab(tab);
+
+      // Table should exist for regular fields
+      expect(result).toContain('<table');
+      expect(result).toContain('relationship="WORKLOG"');
+      expect(result).toContain('dataattribute="LOGTYPE"');
+      // Pushbutton should be rendered outside the table
+      expect(result).toContain('<pushbutton');
+      expect(result).toContain('label="Add Entry"');
+    });
+  });
+
   describe('generateNestedTabGroup', () => {
     it('should generate tabgroup with multiple tabs', () => {
       const tabs: TabDefinition[] = [

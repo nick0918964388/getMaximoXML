@@ -1,9 +1,11 @@
 import type { TabDefinition, DetailTableConfig, ProcessedField } from '../types';
 import { generateSectionWithFields, generateTable } from '../generators';
-import { generateId } from '../utils/id-generator';
+import { generateButtongroup, generatePushbutton } from '../generators/textbox';
+import { generateId }from '../utils/id-generator';
 
 /**
  * Generate content for a tab or subtab (header section + detail tables)
+ * Pushbuttons in detail tables are rendered separately, not inside <table> elements
  */
 function generateTabContent(
   headerFields: ProcessedField[],
@@ -20,20 +22,44 @@ function generateTabContent(
     parts.push(section);
   }
 
-  // Generate detail tables
+  // Collect all detail pushbuttons to render separately
+  const detailPushbuttons: ProcessedField[] = [];
+
+  // Generate detail tables (excluding pushbuttons)
   if (detailTables.size > 0) {
     for (const [tableName, fields] of detailTables) {
-      // Get config for this detail table
-      const configKey = `${tabLabel}:${tableName}`;
-      const config = detailTableConfigs[configKey];
+      // Separate pushbuttons from regular fields
+      const regularFields = fields.filter(f => f.type !== 'pushbutton');
+      const pushbuttons = fields.filter(f => f.type === 'pushbutton');
 
-      // Use config values if available, otherwise use defaults
-      const label = config?.label || tableName.replace(/_/g, ' ');
-      const orderBy = config?.orderBy || undefined;
-      const beanclass = config?.beanclass || undefined;
+      // Collect pushbuttons for later rendering
+      detailPushbuttons.push(...pushbuttons);
 
-      const table = generateTable(fields, tableName, label, orderBy, beanclass);
-      parts.push(table);
+      // Only create table if there are non-pushbutton fields
+      if (regularFields.length > 0) {
+        // Get config for this detail table
+        const configKey = `${tabLabel}:${tableName}`;
+        const config = detailTableConfigs[configKey];
+
+        // Use config values if available, otherwise use defaults
+        const label = config?.label || tableName.replace(/_/g, ' ');
+        const orderBy = config?.orderBy || undefined;
+        const beanclass = config?.beanclass || undefined;
+
+        const table = generateTable(regularFields, tableName, label, orderBy, beanclass);
+        parts.push(table);
+      }
+    }
+  }
+
+  // Render detail pushbuttons separately (not in table)
+  if (detailPushbuttons.length > 0) {
+    if (detailPushbuttons.length >= 2) {
+      // Multiple pushbuttons - wrap in buttongroup
+      parts.push(generateButtongroup(detailPushbuttons));
+    } else {
+      // Single pushbutton - render directly
+      parts.push(generatePushbutton(detailPushbuttons[0]));
     }
   }
 
