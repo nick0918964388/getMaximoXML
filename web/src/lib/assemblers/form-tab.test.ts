@@ -48,6 +48,29 @@ describe('form-tab assemblers', () => {
       expect(result).toContain('dataattribute="DESCRIPTION"');
     });
 
+    it('should include border="true" on main header section', () => {
+      const tab = createTabDefinition({
+        headerFields: [
+          createProcessedField({ dataattribute: 'STATUS', label: 'Status' }),
+        ],
+      });
+      const result = generateFormTab(tab);
+
+      expect(result).toContain('border="true"');
+    });
+
+    it('should use readable ID for main header section', () => {
+      const tab = createTabDefinition({
+        id: 'tab_main',
+        headerFields: [
+          createProcessedField({ dataattribute: 'STATUS', label: 'Status' }),
+        ],
+      });
+      const result = generateFormTab(tab);
+
+      expect(result).toContain('id="tab_main_grid"');
+    });
+
     it('should generate tab with detail tables', () => {
       const detailTables = new Map<string, ProcessedField[]>();
       detailTables.set('WORKLOG', [

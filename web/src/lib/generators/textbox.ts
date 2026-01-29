@@ -170,3 +170,15 @@ export function generatePushbutton(field: ProcessedField): string {
   const attrString = buildAttributes(attrs);
   return `<pushbutton ${attrString}/>`;
 }
+
+/**
+ * Generate a buttongroup XML element wrapping multiple pushbuttons
+ */
+export function generateButtongroup(buttons: ProcessedField[]): string {
+  const groupId = generateId();
+  const buttonXmls = buttons.map(generatePushbutton).join('\n\t');
+
+  return `<buttongroup id="${groupId}">
+\t${buttonXmls}
+</buttongroup>`;
+}

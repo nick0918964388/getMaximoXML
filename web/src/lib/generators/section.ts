@@ -1,8 +1,8 @@
 import type { ProcessedField } from '../types';
-import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton } from './textbox';
+import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton, generateButtongroup } from './textbox';
 import { generateCheckbox } from './checkbox';
 import { generateAttachments } from './attachments';
-import { generateId } from '../utils/id-generator';
+import { generateSemanticId } from '../utils/id-generator';
 
 interface SectionOptions {
   border?: boolean;
@@ -103,29 +103,89 @@ function generateFieldXml(field: ProcessedField): string {
 }
 
 /**
+ * Process fields to group consecutive pushbuttons into buttongroups
+ * Returns array of either single fields or buttongroup arrays
+ */
+type FieldOrButtongroup = ProcessedField | ProcessedField[];
+
+function groupConsecutivePushbuttons(fields: ProcessedField[]): FieldOrButtongroup[] {
+  const result: FieldOrButtongroup[] = [];
+  let currentPushbuttonGroup: ProcessedField[] = [];
+
+  const flushPushbuttonGroup = () => {
+    if (currentPushbuttonGroup.length >= 2) {
+      result.push([...currentPushbuttonGroup]);
+    } else if (currentPushbuttonGroup.length === 1) {
+      // Single pushbutton, don't wrap in group
+      result.push(currentPushbuttonGroup[0]);
+    }
+    currentPushbuttonGroup = [];
+  };
+
+  for (const field of fields) {
+    if (field.type === 'pushbutton') {
+      currentPushbuttonGroup.push(field);
+    } else {
+      flushPushbuttonGroup();
+      result.push(field);
+    }
+  }
+
+  flushPushbuttonGroup();
+  return result;
+}
+
+/**
+ * Generate XML for a field or buttongroup
+ */
+function generateFieldOrButtongroupXml(item: FieldOrButtongroup): string {
+  if (Array.isArray(item)) {
+    return generateButtongroup(item);
+  } else {
+    return generateFieldXml(item);
+  }
+}
+
+/**
+ * Options for generateSectionWithFields
+ */
+export interface SectionWithFieldsOptions {
+  /** Add border="true" attribute */
+  border?: boolean;
+  /** Relationship for the section */
+  relationship?: string;
+  /** Number of fields per column for auto-layout (default: 4) */
+  fieldsPerColumn?: number;
+}
+
+/**
  * Generate a section with fields laid out in sectionrow/sectioncol
  * Supports multi-column layout based on field.column property or auto-layout
  * @param id - Section ID
  * @param fields - Array of processed fields
- * @param relationship - Optional relationship for the section
- * @param fieldsPerColumn - Number of fields per column for auto-layout (default: 4)
+ * @param options - Optional configuration (border, relationship, fieldsPerColumn)
  */
 export function generateSectionWithFields(
   id: string,
   fields: ProcessedField[],
-  relationship?: string,
-  fieldsPerColumn: number = DEFAULT_FIELDS_PER_COLUMN
+  options?: SectionWithFieldsOptions
 ): string {
-  const sectionrowId = generateId();
+  const fieldsPerColumn = options?.fieldsPerColumn ?? DEFAULT_FIELDS_PER_COLUMN;
+  // Use semantic ID for sectionrow: {sectionId}_row1
+  const sectionrowId = generateSemanticId(id, 'row1');
 
   // Group fields into columns
   const columns = groupFieldsIntoColumns(fields, fieldsPerColumn);
 
   // Generate sectioncol for each column
-  const sectioncolXmls = columns.map((columnFields) => {
-    const sectioncolId = generateId();
-    const innerSectionId = generateId();
-    const fieldXmls = columnFields.map(generateFieldXml).join('\n\t\t\t\t\t\t\t\t\t\t\t\t\t');
+  const sectioncolXmls = columns.map((columnFields, colIndex) => {
+    // Use semantic ID: {sectionId}_row1_col{n}
+    const sectioncolId = generateSemanticId(sectionrowId, `col${colIndex + 1}`);
+    // Use semantic ID for inner section: {sectioncolId}_section
+    const innerSectionId = generateSemanticId(sectioncolId, 'section');
+    // Group consecutive pushbuttons into buttongroups
+    const groupedFields = groupConsecutivePushbuttons(columnFields);
+    const fieldXmls = groupedFields.map(generateFieldOrButtongroupXml).join('\n\t\t\t\t\t\t\t\t\t\t\t\t\t');
 
     return `<sectioncol id="${sectioncolId}">
 \t\t\t\t\t\t\t\t\t\t\t<section id="${innerSectionId}">
@@ -136,8 +196,11 @@ export function generateSectionWithFields(
 
   // Build section attributes
   let sectionAttrs = `id="${id}"`;
-  if (relationship) {
-    sectionAttrs += ` relationship="${relationship}"`;
+  if (options?.border !== undefined) {
+    sectionAttrs += ` border="${options.border}"`;
+  }
+  if (options?.relationship) {
+    sectionAttrs += ` relationship="${options.relationship}"`;
   }
 
   return `<section ${sectionAttrs}>

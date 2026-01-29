@@ -24,7 +24,7 @@ const mockModule: FmbModule = {
           name: 'FIELD1',
           itemType: 'TEXT_ITEM',
           prompt: 'Field One',
-          canvas: 'CVS1',
+          canvas: 'CANVAS_BODY',
           tabPage: 'TP1',
           required: false,
           enabled: true,
@@ -38,8 +38,8 @@ const mockModule: FmbModule = {
   ],
   canvases: [
     {
-      name: 'CVS1',
-      canvasType: 'TAB',
+      name: 'CANVAS_BODY',
+      canvasType: 'Stacked',
       tabPages: [{ name: 'TP1', label: 'Main Tab', attributes: {} }],
       attributes: {},
     },

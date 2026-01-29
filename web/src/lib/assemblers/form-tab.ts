@@ -53,7 +53,7 @@ export function generateFormTab(
   // Generate header section if there are header fields (fields without subTabName)
   if (tab.headerFields.length > 0) {
     const sectionId = `${tab.id}_grid`;
-    const section = generateSectionWithFields(sectionId, tab.headerFields);
+    const section = generateSectionWithFields(sectionId, tab.headerFields, { border: true });
     parts.push(section);
   }
 

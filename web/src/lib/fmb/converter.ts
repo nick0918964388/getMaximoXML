@@ -24,6 +24,12 @@ export function mapItemType(itemType: FmbItemType | string): FieldType {
 /** Max number of fields to auto-add to the list area */
 const MAX_LIST_FIELDS = 10;
 
+/** Block names to skip during conversion */
+const SKIP_BLOCKS = ['TOOL_BUTTON', 'HEAD_BLOCK'];
+
+/** Canvas names that contain visible form fields */
+const VISIBLE_CANVASES = ['CANVAS_BODY', 'CANVAS_TAB'];
+
 /**
  * Convert an FmbModule to Maximo SAFieldDefinition array.
  */
@@ -39,13 +45,30 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
   const fields: SAFieldDefinition[] = [];
 
   for (const block of module.blocks) {
+    // Skip TOOL_BUTTON and HEAD_BLOCK blocks
+    if (SKIP_BLOCKS.includes(block.name)) {
+      continue;
+    }
     const area: FieldArea = block.singleRecord ? 'header' : 'detail';
 
     for (const item of block.items) {
+      // Skip items not on visible canvases (CANVAS_BODY or CANVAS_TAB)
+      if (!item.canvas || !VISIBLE_CANVASES.includes(item.canvas)) {
+        continue;
+      }
+
+      // Skip hidden items (visible=false)
+      if (item.visible === false) {
+        continue;
+      }
+
       // For pushbuttons, prefer item.label over item.prompt
       const label = item.itemType === 'PUSH_BUTTON'
         ? (item.label ?? item.prompt ?? item.name)
         : (item.prompt ?? item.name);
+
+      // Resolve tabPage label
+      const tabPageLabel = item.tabPage ? (tabPageLabelMap.get(item.tabPage) ?? item.tabPage) : '';
 
       const field: SAFieldDefinition = {
         ...DEFAULT_FIELD,
@@ -55,7 +78,10 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         area,
         inputMode: resolveInputMode(item.required, item.enabled),
         relationship: area === 'detail' ? (block.queryDataSource ?? '') : '',
-        tabName: item.tabPage ? (tabPageLabelMap.get(item.tabPage) ?? item.tabPage) : '',
+        // For header items, tabPage becomes tabName
+        // For detail items, tabPage becomes subTabName (creates sub-tabs for each tabPage)
+        tabName: area === 'header' && tabPageLabel ? tabPageLabel : '',
+        subTabName: area === 'detail' && tabPageLabel ? tabPageLabel : '',
         lookup: item.lovName ?? '',
         length: item.maximumLength ?? 100,
       };

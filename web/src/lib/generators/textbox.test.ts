@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton } from './textbox';
+import { generateTextbox, generateMultilineTextbox, generateMultipartTextbox, generateStaticText, generatePushbutton, generateButtongroup } from './textbox';
 import { ProcessedField, DEFAULT_FIELD } from '../types';
 import { resetIdGenerator } from '../utils/id-generator';
 
@@ -241,6 +241,56 @@ describe('textbox generators', () => {
       const result = generatePushbutton(field);
 
       expect(result).toContain('mxevent="SAVE"');
+    });
+  });
+
+  describe('generateButtongroup', () => {
+    it('should wrap multiple pushbuttons in buttongroup', () => {
+      const buttons = [
+        createProcessedField({ type: 'pushbutton', label: 'Save' }),
+        createProcessedField({ type: 'pushbutton', label: 'Cancel' }),
+      ];
+
+      const result = generateButtongroup(buttons);
+
+      expect(result).toContain('<buttongroup id=');
+      expect(result).toContain('</buttongroup>');
+      expect(result).toContain('label="Save"');
+      expect(result).toContain('label="Cancel"');
+    });
+
+    it('should generate single pushbutton in buttongroup', () => {
+      const buttons = [
+        createProcessedField({ type: 'pushbutton', label: 'Submit' }),
+      ];
+
+      const result = generateButtongroup(buttons);
+
+      expect(result).toContain('<buttongroup id=');
+      expect(result).toContain('<pushbutton');
+      expect(result).toContain('label="Submit"');
+    });
+
+    it('should preserve mxevent on pushbuttons inside buttongroup', () => {
+      const buttons = [
+        createProcessedField({ type: 'pushbutton', label: 'Save', mxevent: 'SAVE' }),
+        createProcessedField({ type: 'pushbutton', label: 'Report', mxevent: 'REPORT' }),
+      ];
+
+      const result = generateButtongroup(buttons);
+
+      expect(result).toContain('mxevent="SAVE"');
+      expect(result).toContain('mxevent="REPORT"');
+    });
+
+    it('should generate unique ID for buttongroup', () => {
+      const buttons = [
+        createProcessedField({ type: 'pushbutton', label: 'Action' }),
+      ];
+
+      const result = generateButtongroup(buttons);
+
+      expect(result).toMatch(/<buttongroup id="\d+"/);
     });
   });
 });

@@ -37,7 +37,7 @@ describe('convertFmbToMaximo', () => {
             name: 'FIELD1',
             itemType: 'TEXT_ITEM',
             prompt: 'Field One',
-            canvas: 'CVS',
+            canvas: 'CANVAS_BODY',
             tabPage: 'TAB1',
             required: true,
             maximumLength: 30,
@@ -47,6 +47,7 @@ describe('convertFmbToMaximo', () => {
             name: 'CHK1',
             itemType: 'CHECK_BOX',
             prompt: 'Active',
+            canvas: 'CANVAS_BODY',
             attributes: {},
           },
         ],
@@ -62,12 +63,14 @@ describe('convertFmbToMaximo', () => {
             name: 'COL1',
             itemType: 'TEXT_ITEM',
             prompt: 'Column One',
+            canvas: 'CANVAS_TAB',
             attributes: {},
           },
           {
             name: 'BTN1',
             itemType: 'PUSH_BUTTON',
             prompt: 'Save',
+            canvas: 'CANVAS_TAB',
             attributes: {},
           },
         ],
@@ -126,6 +129,7 @@ describe('convertFmbToMaximo', () => {
           itemType: 'PUSH_BUTTON',
           label: 'Save Record',
           prompt: '',
+          canvas: 'CANVAS_BODY',
           attributes: {},
         }],
         triggers: [],
@@ -168,5 +172,205 @@ describe('convertFmbToMaximo', () => {
     const result = convertFmbToMaximo(fmbModule);
     expect(result.metadata.appName).toBe('MYFORM');
     expect(result.metadata.appTitle).toBe('My Form');
+  });
+
+  it('should set subTabName for detail items with tabPage', () => {
+    const moduleWithTabs: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'HEADER',
+          singleRecord: true,
+          items: [
+            { name: 'SLIP_NO', itemType: 'TEXT_ITEM', prompt: 'Slip No', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'EXPENSE',
+          queryDataSource: 'EXPENSE_TBL',
+          singleRecord: false,
+          items: [
+            { name: 'LINE_NO', itemType: 'TEXT_ITEM', prompt: 'Line No', canvas: 'CANVAS_TAB', tabPage: 'TP_EXPENSE', attributes: {} },
+            { name: 'AMOUNT', itemType: 'TEXT_ITEM', prompt: 'Amount', canvas: 'CANVAS_TAB', tabPage: 'TP_EXPENSE', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'CERT',
+          queryDataSource: 'CERT_TBL',
+          singleRecord: false,
+          items: [
+            { name: 'CERT_NO', itemType: 'TEXT_ITEM', prompt: 'Cert No', canvas: 'CANVAS_TAB', tabPage: 'TP_CERT', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [
+        {
+          name: 'CVS',
+          canvasType: 'TAB',
+          tabPages: [
+            { name: 'TP_EXPENSE', label: '費用', attributes: {} },
+            { name: 'TP_CERT', label: 'Certificate', attributes: {} },
+          ],
+          attributes: {},
+        },
+      ],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithTabs);
+
+    // Detail fields with tabPage should have subTabName set
+    const expenseFields = result.fields.filter((f) => f.area === 'detail' && f.relationship === 'EXPENSE_TBL');
+    expect(expenseFields).toHaveLength(2);
+    expect(expenseFields[0].subTabName).toBe('費用');
+    expect(expenseFields[1].subTabName).toBe('費用');
+
+    const certFields = result.fields.filter((f) => f.area === 'detail' && f.relationship === 'CERT_TBL');
+    expect(certFields).toHaveLength(1);
+    expect(certFields[0].subTabName).toBe('Certificate');
+  });
+
+  it('should not set subTabName for header items even with tabPage', () => {
+    const moduleWithHeaderTab: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'HEADER',
+          singleRecord: true,
+          items: [
+            { name: 'FIELD1', itemType: 'TEXT_ITEM', prompt: 'Field 1', canvas: 'CANVAS_BODY', tabPage: 'TP_MAIN', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [
+        {
+          name: 'CVS',
+          canvasType: 'TAB',
+          tabPages: [
+            { name: 'TP_MAIN', label: 'Main Tab', attributes: {} },
+          ],
+          attributes: {},
+        },
+      ],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithHeaderTab);
+    const headerField = result.fields.find((f) => f.area === 'header' && f.fieldName === 'FIELD1');
+
+    // Header fields should use tabName, not subTabName
+    expect(headerField?.tabName).toBe('Main Tab');
+    expect(headerField?.subTabName).toBe('');
+  });
+
+  it('should skip TOOL_BUTTON and HEAD_BLOCK blocks', () => {
+    const moduleWithSkippedBlocks: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'TOOL_BUTTON',
+          singleRecord: true,
+          items: [
+            { name: 'BTN_SAVE', itemType: 'PUSH_BUTTON', label: 'Save', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'BTN_CANCEL', itemType: 'PUSH_BUTTON', label: 'Cancel', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'HEAD_BLOCK',
+          singleRecord: true,
+          items: [
+            { name: 'HEAD_FIELD', itemType: 'TEXT_ITEM', prompt: 'Head Field', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'MAIN_BLOCK',
+          singleRecord: true,
+          items: [
+            { name: 'MAIN_FIELD', itemType: 'TEXT_ITEM', prompt: 'Main Field', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithSkippedBlocks);
+
+    // Should NOT contain fields from TOOL_BUTTON or HEAD_BLOCK
+    expect(result.fields.find((f) => f.fieldName === 'BTN_SAVE')).toBeUndefined();
+    expect(result.fields.find((f) => f.fieldName === 'BTN_CANCEL')).toBeUndefined();
+    expect(result.fields.find((f) => f.fieldName === 'HEAD_FIELD')).toBeUndefined();
+
+    // Should contain field from MAIN_BLOCK
+    const mainField = result.fields.find((f) => f.fieldName === 'MAIN_FIELD');
+    expect(mainField).toBeDefined();
+    expect(mainField?.label).toBe('Main Field');
+  });
+
+  it('should only include items on CANVAS_BODY or CANVAS_TAB with visible=true', () => {
+    const moduleWithCanvases: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN_BLOCK',
+          singleRecord: true,
+          items: [
+            // Should be included: CANVAS_BODY + visible
+            { name: 'SLIP_NO', itemType: 'TEXT_ITEM', prompt: 'Slip No', canvas: 'CANVAS_BODY', visible: true, attributes: {} },
+            // Should be included: CANVAS_TAB + visible (default)
+            { name: 'LINE_NO', itemType: 'TEXT_ITEM', prompt: 'Line No', canvas: 'CANVAS_TAB', attributes: {} },
+            // Should be excluded: CANVAS_BUTTON (toolbar)
+            { name: 'BTN_SAVE', itemType: 'PUSH_BUTTON', label: 'Save', canvas: 'CANVAS_BUTTON', visible: true, attributes: {} },
+            // Should be excluded: CANVAS_HEAD (header display)
+            { name: 'FORM_NAME', itemType: 'DISPLAY_ITEM', prompt: 'Form', canvas: 'CANVAS_HEAD', visible: true, attributes: {} },
+            // Should be excluded: visible=false
+            { name: 'HIDDEN_FIELD', itemType: 'TEXT_ITEM', prompt: 'Hidden', canvas: 'CANVAS_BODY', visible: false, attributes: {} },
+            // Should be excluded: no canvas
+            { name: 'NO_CANVAS', itemType: 'TEXT_ITEM', prompt: 'No Canvas', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithCanvases);
+
+    // Filter out list fields for this test
+    const nonListFields = result.fields.filter((f) => f.area !== 'list');
+
+    // Should include SLIP_NO and LINE_NO
+    expect(nonListFields.find((f) => f.fieldName === 'SLIP_NO')).toBeDefined();
+    expect(nonListFields.find((f) => f.fieldName === 'LINE_NO')).toBeDefined();
+
+    // Should NOT include toolbar, header, hidden, or no-canvas items
+    expect(nonListFields.find((f) => f.fieldName === 'BTN_SAVE')).toBeUndefined();
+    expect(nonListFields.find((f) => f.fieldName === 'FORM_NAME')).toBeUndefined();
+    expect(nonListFields.find((f) => f.fieldName === 'HIDDEN_FIELD')).toBeUndefined();
+    expect(nonListFields.find((f) => f.fieldName === 'NO_CANVAS')).toBeUndefined();
   });
 });
