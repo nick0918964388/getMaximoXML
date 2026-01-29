@@ -168,7 +168,7 @@ export function useAutoSave({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName, enabled]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels, projectId, projectName, enabled]);
 
   return {
     status,

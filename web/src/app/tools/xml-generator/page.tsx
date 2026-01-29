@@ -201,7 +201,7 @@ export default function XmlGeneratorPage() {
           const tabSubTabs = subTabConfigs[f.tabName || 'Main'] || [];
           const exists = tabSubTabs.some(st => st.label === f.subTabName);
           if (!exists) {
-            return { ...f, subTabName: undefined };
+            return { ...f, subTabName: '' };
           }
         }
         return f;
@@ -237,7 +237,7 @@ export default function XmlGeneratorPage() {
       console.error('Generation error:', error);
       return { xmlContent: '', sqlContent: '' };
     }
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, mainDetailLabels]);
+  }, [fields, metadata, detailTableConfigs, dialogTemplates, mainDetailLabels, subTabConfigs]);
 
   // Download handlers
   const handleDownloadXml = useCallback(() => {

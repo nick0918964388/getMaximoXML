@@ -132,7 +132,7 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         subTabName: area === 'detail' && tabPageLabel ? tabPageLabel : '',
         lookup: item.lovName ?? '',
         length: item.maximumLength ?? 100,
-        descrAttribute: descrAttribute ?? '',
+        descDataattribute: descrAttribute ?? '',
       };
       fields.push(field);
     }

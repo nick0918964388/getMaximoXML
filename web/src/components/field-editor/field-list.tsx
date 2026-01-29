@@ -473,7 +473,7 @@ export function FieldList({
       const removedSet = new Set(removedLabels);
       const updatedFields = fields.map(f => {
         if (f.tabName === tabName && f.subTabName && removedSet.has(f.subTabName)) {
-          return { ...f, subTabName: undefined };
+          return { ...f, subTabName: '' };
         }
         return f;
       });
