@@ -15,8 +15,8 @@ describe('mapItemType', () => {
   it('should map DISPLAY_ITEM to statictext', () => {
     expect(mapItemType('DISPLAY_ITEM')).toBe('statictext');
   });
-  it('should map LIST_ITEM to textbox (with lookup)', () => {
-    expect(mapItemType('LIST_ITEM')).toBe('textbox');
+  it('should map LIST_ITEM to combobox', () => {
+    expect(mapItemType('LIST_ITEM')).toBe('combobox');
   });
   it('should default unknown types to textbox', () => {
     expect(mapItemType('RADIO_GROUP')).toBe('textbox');
@@ -640,5 +640,33 @@ describe('convertFmbToMaximo', () => {
     // DEPT_NAME should NOT appear as separate field (merged into multiparttextbox)
     const deptNameField = result.fields.find((f) => f.fieldName === 'DEPT_NAME' && f.area !== 'list');
     expect(deptNameField).toBeUndefined();
+  });
+
+  it('should convert LIST_ITEM to combobox', () => {
+    const moduleWithListItem: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'B1PCS1005',
+          singleRecord: true,
+          queryDataSource: 'PCS1005',
+          items: [
+            { name: 'MISC_SUB_TYPE', itemType: 'LIST_ITEM', prompt: 'Type', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithListItem);
+
+    const miscSubType = result.fields.find((f) => f.fieldName === 'MISC_SUB_TYPE' && f.area !== 'list');
+    expect(miscSubType).toBeDefined();
+    expect(miscSubType?.type).toBe('combobox');
   });
 });

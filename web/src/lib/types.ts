@@ -9,7 +9,8 @@ export type FieldType =
   | 'multilinetextbox'
   | 'statictext'
   | 'pushbutton'
-  | 'attachments';
+  | 'attachments'
+  | 'combobox';
 
 /**
  * Input mode for fields

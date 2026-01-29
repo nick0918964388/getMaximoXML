@@ -182,3 +182,29 @@ export function generateButtongroup(buttons: ProcessedField[]): string {
 \t${buttonXmls}
 </buttongroup>`;
 }
+
+/**
+ * Generate a combobox XML element (dropdown/list)
+ */
+export function generateCombobox(field: ProcessedField): string {
+  const attrs: Record<string, string | undefined> = {
+    dataattribute: field.dataattribute,
+    id: generateId(),
+  };
+
+  if (field.label) {
+    attrs.label = field.label;
+  }
+
+  // Add inputmode if not optional (default)
+  if (field.inputMode && field.inputMode !== 'optional') {
+    attrs.inputmode = field.inputMode;
+  }
+
+  if (field.lookup) {
+    attrs.lookup = field.lookup;
+  }
+
+  const attrString = buildAttributes(attrs);
+  return `<combobox ${attrString}/>`;
+}

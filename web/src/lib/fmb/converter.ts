@@ -15,6 +15,7 @@ const ITEM_TYPE_MAP: Record<string, FieldType> = {
   CHECK_BOX: 'checkbox',
   PUSH_BUTTON: 'pushbutton',
   DISPLAY_ITEM: 'statictext',
+  LIST_ITEM: 'combobox',
 };
 
 export function mapItemType(itemType: FmbItemType | string): FieldType {

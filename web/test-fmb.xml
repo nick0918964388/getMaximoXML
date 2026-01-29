@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module Name="TEST_FORM" Title="Test Form">
+  <Block Name="HEADER_BLK" QueryDataSourceName="TEST_TABLE" SingleRecord="true">
+    <Item Name="FIELD1" ItemType="TEXT_ITEM" Prompt="Field One" Canvas="MAIN_CANVAS" DataType="CHAR" MaximumLength="30" Required="true" />
+    <Item Name="CHK1" ItemType="CHECK_BOX" Prompt="Active" Canvas="MAIN_CANVAS" />
+  </Block>
+  <Block Name="DETAIL_BLK" QueryDataSourceName="DETAIL_TABLE" SingleRecord="false">
+    <Item Name="COL1" ItemType="TEXT_ITEM" Prompt="Column One" Canvas="MAIN_CANVAS" TabPage="TAB_DETAIL" />
+    <Item Name="BTN1" ItemType="PUSH_BUTTON" Prompt="Save" />
+  </Block>
+  <Canvas Name="MAIN_CANVAS" CanvasType="TAB">
+    <TabPage Name="TAB_MAIN" Label="Main" />
+    <TabPage Name="TAB_DETAIL" Label="Detail" />
+  </Canvas>
+  <LOV Name="LOV_FIELD1" Title="Select Field1" />
+</Module>
