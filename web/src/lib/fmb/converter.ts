@@ -30,6 +30,12 @@ const SKIP_BLOCKS = ['TOOL_BUTTON', 'HEAD_BLOCK'];
 /** Canvas names that contain visible form fields */
 const VISIBLE_CANVASES = ['CANVAS_BODY', 'CANVAS_TAB'];
 
+/** Canvas that maps to header area */
+const HEADER_CANVAS = 'CANVAS_BODY';
+
+/** Relationships to skip (summary tables) */
+const SKIP_RELATIONSHIPS = ['PCS1005'];
+
 /**
  * Convert an FmbModule to Maximo SAFieldDefinition array.
  */
@@ -49,7 +55,6 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
     if (SKIP_BLOCKS.includes(block.name)) {
       continue;
     }
-    const area: FieldArea = block.singleRecord ? 'header' : 'detail';
 
     for (const item of block.items) {
       // Skip items not on visible canvases (CANVAS_BODY or CANVAS_TAB)
@@ -59,6 +64,14 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
 
       // Skip hidden items (visible=false)
       if (item.visible === false) {
+        continue;
+      }
+
+      // Determine area based on canvas: CANVAS_BODY=header, CANVAS_TAB=detail
+      const area: FieldArea = item.canvas === HEADER_CANVAS ? 'header' : 'detail';
+
+      // Skip summary tables (PCS1005) for detail items
+      if (area === 'detail' && SKIP_RELATIONSHIPS.includes(block.queryDataSource ?? '')) {
         continue;
       }
 

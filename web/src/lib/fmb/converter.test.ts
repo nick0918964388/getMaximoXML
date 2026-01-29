@@ -373,4 +373,126 @@ describe('convertFmbToMaximo', () => {
     expect(nonListFields.find((f) => f.fieldName === 'HIDDEN_FIELD')).toBeUndefined();
     expect(nonListFields.find((f) => f.fieldName === 'NO_CANVAS')).toBeUndefined();
   });
+
+  it('should use canvas to determine area: CANVAS_BODY=header, CANVAS_TAB=detail', () => {
+    const moduleWithMixedCanvas: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN_BLOCK',
+          singleRecord: false, // Even with singleRecord=false
+          queryDataSource: 'PCS1005',
+          items: [
+            // CANVAS_BODY items should be header (regardless of block.singleRecord)
+            { name: 'SLIP_NO', itemType: 'TEXT_ITEM', prompt: 'Slip No', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'PSN_NAME', itemType: 'TEXT_ITEM', prompt: 'Payee', canvas: 'CANVAS_BODY', attributes: {} },
+            // Pushbuttons on CANVAS_BODY should also be header
+            { name: 'SUPPORTING', itemType: 'PUSH_BUTTON', label: 'Supporting', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'LIST', itemType: 'PUSH_BUTTON', label: '報告單', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'DETAIL_BLOCK',
+          singleRecord: false,
+          queryDataSource: 'PCS1006',
+          items: [
+            // CANVAS_TAB items should be detail
+            { name: 'LINE_NO', itemType: 'TEXT_ITEM', prompt: 'Line No', canvas: 'CANVAS_TAB', tabPage: 'EXPENSE', attributes: {} },
+            { name: 'AMOUNT', itemType: 'TEXT_ITEM', prompt: 'Amount', canvas: 'CANVAS_TAB', tabPage: 'EXPENSE', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [
+        {
+          name: 'CANVAS_TAB',
+          canvasType: 'Tab',
+          tabPages: [{ name: 'EXPENSE', label: 'Expense', attributes: {} }],
+          attributes: {},
+        },
+      ],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithMixedCanvas);
+
+    // CANVAS_BODY items should be header (no relationship)
+    const slipNo = result.fields.find((f) => f.fieldName === 'SLIP_NO' && f.area !== 'list');
+    expect(slipNo?.area).toBe('header');
+    expect(slipNo?.relationship).toBe('');
+
+    const psnName = result.fields.find((f) => f.fieldName === 'PSN_NAME' && f.area !== 'list');
+    expect(psnName?.area).toBe('header');
+
+    // Pushbuttons on CANVAS_BODY should be header
+    const supporting = result.fields.find((f) => f.fieldName === 'SUPPORTING');
+    expect(supporting?.area).toBe('header');
+    expect(supporting?.type).toBe('pushbutton');
+
+    const list = result.fields.find((f) => f.fieldName === 'LIST');
+    expect(list?.area).toBe('header');
+    expect(list?.type).toBe('pushbutton');
+
+    // CANVAS_TAB items should be detail with relationship
+    const lineNo = result.fields.find((f) => f.fieldName === 'LINE_NO' && f.area !== 'list');
+    expect(lineNo?.area).toBe('detail');
+    expect(lineNo?.relationship).toBe('PCS1006');
+
+    const amount = result.fields.find((f) => f.fieldName === 'AMOUNT' && f.area !== 'list');
+    expect(amount?.area).toBe('detail');
+    expect(amount?.relationship).toBe('PCS1006');
+  });
+
+  it('should skip PCS1005 relationship (summary table)', () => {
+    const moduleWithSummary: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'SUMMARY_BLOCK',
+          singleRecord: false,
+          queryDataSource: 'PCS1005',
+          items: [
+            // Summary fields on CANVAS_TAB with PCS1005 relationship should be skipped
+            { name: 'CURR', itemType: 'TEXT_ITEM', prompt: 'Currency', canvas: 'CANVAS_TAB', tabPage: 'EXPENSE', attributes: {} },
+            { name: 'TOTAL_AMOUNT', itemType: 'TEXT_ITEM', prompt: 'Amount', canvas: 'CANVAS_TAB', tabPage: 'EXPENSE', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'DETAIL_BLOCK',
+          singleRecord: false,
+          queryDataSource: 'PCS1006',
+          items: [
+            { name: 'LINE_NO', itemType: 'TEXT_ITEM', prompt: 'Line No', canvas: 'CANVAS_TAB', tabPage: 'EXPENSE', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithSummary);
+
+    // PCS1005 detail fields should be skipped
+    const currField = result.fields.find((f) => f.fieldName === 'CURR' && f.area === 'detail');
+    expect(currField).toBeUndefined();
+
+    const totalAmount = result.fields.find((f) => f.fieldName === 'TOTAL_AMOUNT' && f.area === 'detail');
+    expect(totalAmount).toBeUndefined();
+
+    // PCS1006 detail fields should be included
+    const lineNo = result.fields.find((f) => f.fieldName === 'LINE_NO' && f.area === 'detail');
+    expect(lineNo).toBeDefined();
+    expect(lineNo?.relationship).toBe('PCS1006');
+  });
 });
