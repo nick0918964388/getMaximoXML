@@ -49,11 +49,30 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
   }
 
   const fields: SAFieldDefinition[] = [];
+  // Track display items that have been merged into multiparttextbox
+  const mergedDisplayItems = new Set<string>();
 
   for (const block of module.blocks) {
     // Skip TOOL_BUTTON and HEAD_BLOCK blocks
     if (SKIP_BLOCKS.includes(block.name)) {
       continue;
+    }
+
+    // Pre-process: identify TEXT_ITEM + DISPLAY_ITEM pairs for multiparttextbox
+    // A DISPLAY_ITEM with empty prompt following a TEXT_ITEM becomes its descrAttribute
+    const displayItemMap = new Map<string, string>(); // TEXT_ITEM name -> DISPLAY_ITEM name
+    for (let i = 0; i < block.items.length - 1; i++) {
+      const current = block.items[i];
+      const next = block.items[i + 1];
+
+      // Check if current is TEXT_ITEM and next is DISPLAY_ITEM with empty/no prompt
+      if (current.itemType === 'TEXT_ITEM' &&
+          next.itemType === 'DISPLAY_ITEM' &&
+          (!next.prompt || next.prompt === '') &&
+          current.canvas === next.canvas) {
+        displayItemMap.set(current.name, next.name);
+        mergedDisplayItems.add(next.name);
+      }
     }
 
     for (const item of block.items) {
@@ -64,6 +83,11 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
 
       // Skip hidden items (visible=false)
       if (item.visible === false) {
+        continue;
+      }
+
+      // Skip display items that were merged into a multiparttextbox
+      if (mergedDisplayItems.has(item.name)) {
         continue;
       }
 
@@ -83,11 +107,15 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
       // Resolve tabPage label
       const tabPageLabel = item.tabPage ? (tabPageLabelMap.get(item.tabPage) ?? item.tabPage) : '';
 
+      // Check if this TEXT_ITEM should become multiparttextbox
+      const descrAttribute = displayItemMap.get(item.name);
+      const fieldType: FieldType = descrAttribute ? 'multiparttextbox' : mapItemType(item.itemType);
+
       const field: SAFieldDefinition = {
         ...DEFAULT_FIELD,
         fieldName: item.name,
         label,
-        type: mapItemType(item.itemType),
+        type: fieldType,
         area,
         inputMode: resolveInputMode(item.required, item.enabled),
         relationship: area === 'detail' ? (block.queryDataSource ?? '') : '',
@@ -97,6 +125,7 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         subTabName: area === 'detail' && tabPageLabel ? tabPageLabel : '',
         lookup: item.lovName ?? '',
         length: item.maximumLength ?? 100,
+        descrAttribute: descrAttribute ?? '',
       };
       fields.push(field);
     }

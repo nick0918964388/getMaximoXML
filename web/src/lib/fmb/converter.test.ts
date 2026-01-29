@@ -495,4 +495,113 @@ describe('convertFmbToMaximo', () => {
     expect(lineNo).toBeDefined();
     expect(lineNo?.relationship).toBe('PCS1006');
   });
+
+  it('should include pushbuttons from control blocks (CBLK) on CANVAS_BODY', () => {
+    const moduleWithControlBlock: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'CBLK', // Control block with buttons
+          singleRecord: false,
+          queryDataSource: '', // No data source
+          items: [
+            { name: 'PUSH_HELP', itemType: 'PUSH_BUTTON', label: 'HELP', canvas: 'CANVAS_BODY', visible: true, attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+        {
+          name: 'B1PCS1005',
+          singleRecord: true,
+          queryDataSource: 'PCS1005',
+          items: [
+            { name: 'SLIP_NO', itemType: 'TEXT_ITEM', prompt: 'Ispt No', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'SUPPORTING', itemType: 'PUSH_BUTTON', label: 'Supporting', canvas: 'CANVAS_BODY', visible: true, attributes: {} },
+            { name: 'LIST', itemType: 'PUSH_BUTTON', label: '報告單', canvas: 'CANVAS_BODY', visible: true, attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithControlBlock);
+
+    // PUSH_HELP from control block should be included as header pushbutton
+    const helpButton = result.fields.find((f) => f.fieldName === 'PUSH_HELP');
+    expect(helpButton).toBeDefined();
+    expect(helpButton?.type).toBe('pushbutton');
+    expect(helpButton?.area).toBe('header');
+    expect(helpButton?.label).toBe('HELP');
+
+    // SUPPORTING and LIST buttons should also be included
+    const supportingButton = result.fields.find((f) => f.fieldName === 'SUPPORTING');
+    expect(supportingButton).toBeDefined();
+    expect(supportingButton?.type).toBe('pushbutton');
+    expect(supportingButton?.label).toBe('Supporting');
+
+    const listButton = result.fields.find((f) => f.fieldName === 'LIST');
+    expect(listButton).toBeDefined();
+    expect(listButton?.type).toBe('pushbutton');
+    expect(listButton?.label).toBe('報告單');
+  });
+
+  it('should convert TEXT_ITEM + DISPLAY_ITEM pair to multiparttextbox', () => {
+    const moduleWithCodeName: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'B1PCS1005',
+          singleRecord: true,
+          queryDataSource: 'PCS1005',
+          items: [
+            // SUPPLY_CODE (Text Item) followed by SUPPLY_NAME (Display Item) - should become multiparttextbox
+            { name: 'SUPPLY_CODE', itemType: 'TEXT_ITEM', prompt: 'Payee', canvas: 'CANVAS_BODY', lovName: 'LOV_SUPPLY1', attributes: {} },
+            { name: 'SUPPLY_NAME', itemType: 'DISPLAY_ITEM', prompt: '', canvas: 'CANVAS_BODY', attributes: {} },
+            // PSN_ID + PSN_NAME pair
+            { name: 'PSN_ID', itemType: 'TEXT_ITEM', prompt: 'Employee', canvas: 'CANVAS_BODY', lovName: 'LOV_PSN_ID', attributes: {} },
+            { name: 'PSN_NAME', itemType: 'DISPLAY_ITEM', prompt: '', canvas: 'CANVAS_BODY', attributes: {} },
+            // Standalone text item (no following display item)
+            { name: 'SLIP_NO', itemType: 'TEXT_ITEM', prompt: 'Ispt No', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithCodeName);
+
+    // SUPPLY_CODE should become multiparttextbox with SUPPLY_NAME as descrAttribute
+    const supplyField = result.fields.find((f) => f.fieldName === 'SUPPLY_CODE' && f.area !== 'list');
+    expect(supplyField).toBeDefined();
+    expect(supplyField?.type).toBe('multiparttextbox');
+    expect(supplyField?.descrAttribute).toBe('SUPPLY_NAME');
+
+    // PSN_ID should become multiparttextbox with PSN_NAME as descrAttribute
+    const psnField = result.fields.find((f) => f.fieldName === 'PSN_ID' && f.area !== 'list');
+    expect(psnField).toBeDefined();
+    expect(psnField?.type).toBe('multiparttextbox');
+    expect(psnField?.descrAttribute).toBe('PSN_NAME');
+
+    // SUPPLY_NAME and PSN_NAME should NOT appear as separate fields (merged into multiparttextbox)
+    const supplyNameField = result.fields.find((f) => f.fieldName === 'SUPPLY_NAME' && f.area !== 'list');
+    expect(supplyNameField).toBeUndefined();
+
+    const psnNameField = result.fields.find((f) => f.fieldName === 'PSN_NAME' && f.area !== 'list');
+    expect(psnNameField).toBeUndefined();
+
+    // SLIP_NO should remain textbox (no following display item)
+    const slipNoField = result.fields.find((f) => f.fieldName === 'SLIP_NO' && f.area !== 'list');
+    expect(slipNoField).toBeDefined();
+    expect(slipNoField?.type).toBe('textbox');
+  });
 });
