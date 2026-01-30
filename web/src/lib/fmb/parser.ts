@@ -8,6 +8,8 @@ import type {
   FmbTabPage,
   FmbLov,
   FmbLovColumnMapping,
+  FmbRecordGroup,
+  FmbRecordGroupColumn,
 } from './types';
 
 /**
@@ -40,6 +42,7 @@ export function parseFmbXml(xml: string): FmbModule {
     blocks: parseBlocks(container),
     canvases: parseCanvases(container),
     lovs: parseLovs(container),
+    recordGroups: parseRecordGroups(container),
     triggers: parseTriggers(container),
     attributes: allAttributes(container),
   };
@@ -116,6 +119,37 @@ function parseLovColumnMappings(parent: Element): FmbLovColumnMapping[] {
     returnItem: nsAttr(el, 'ReturnItem') ?? '',
     displayWidth: nsAttrInt(el, 'DisplayWidth'),
   }));
+}
+
+function parseRecordGroups(parent: Element): FmbRecordGroup[] {
+  return Array.from(findChildren(parent, 'RecordGroup')).map((el) => ({
+    name: nsAttr(el, 'Name') ?? '',
+    recordGroupType: nsAttr(el, 'RecordGroupType') ?? 'Query',
+    query: decodeHtmlEntities(nsAttr(el, 'RecordGroupQuery') ?? ''),
+    columns: parseRecordGroupColumns(el),
+    attributes: allAttributes(el),
+  }));
+}
+
+function parseRecordGroupColumns(parent: Element): FmbRecordGroupColumn[] {
+  return Array.from(findChildren(parent, 'RecordGroupColumn')).map((el) => ({
+    name: nsAttr(el, 'Name') ?? '',
+    dataType: nsAttr(el, 'ColumnDataType') ?? 'Character',
+    maxLength: nsAttrInt(el, 'MaximumLength'),
+  }));
+}
+
+/**
+ * Decode HTML entities in string
+ */
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#10;/g, '\n')
+    .replace(/&#13;/g, '\r');
 }
 
 // --- Item type normalization ---

@@ -201,3 +201,57 @@ describe('parseFmbXml - real Oracle frmf2xml format', () => {
     expect(result.blocks[1].triggers[0].triggerText).toBe('null;');
   });
 });
+
+// Test for Record Groups
+const FMB_XML_WITH_RECORD_GROUPS = `<?xml version="1.0" encoding="UTF-8"?>
+<Module version="101020002" xmlns:TEST_default="http://xmlns.oracle.com/Forms" xmlns:TEST_overridden="http://xmlns.oracle.com/Forms">
+  <FormModule TEST_overridden:Name="TEST_FORM" TEST_overridden:Title="Test Form">
+    <RecordGroup TEST_overridden:Name="G_PAYMENT_TERM" TEST_overridden:RecordGroupType="Query" TEST_overridden:RecordGroupQuery="select code_id,desc_e,desc_c&#10;  from pcs1016&#10; where code_type = 'PAYMENT_TERM'">
+      <RecordGroupColumn TEST_overridden:Name="CODE_ID" TEST_overridden:MaximumLength="32" TEST_overridden:ColumnDataType="Character"/>
+      <RecordGroupColumn TEST_overridden:Name="DESC_E" TEST_overridden:MaximumLength="64" TEST_overridden:ColumnDataType="Character"/>
+      <RecordGroupColumn TEST_overridden:Name="DESC_C" TEST_overridden:MaximumLength="64" TEST_overridden:ColumnDataType="Character"/>
+    </RecordGroup>
+    <RecordGroup TEST_overridden:Name="G_DEPT_LOV" TEST_overridden:RecordGroupType="Query" TEST_overridden:RecordGroupQuery="select dept_no, dept_name from department order by dept_no">
+      <RecordGroupColumn TEST_overridden:Name="DEPT_NO" TEST_overridden:MaximumLength="10" TEST_overridden:ColumnDataType="Number"/>
+      <RecordGroupColumn TEST_overridden:Name="DEPT_NAME" TEST_overridden:MaximumLength="50" TEST_overridden:ColumnDataType="Character"/>
+    </RecordGroup>
+    <LOV TEST_overridden:Name="LOV_PAYMENT" TEST_overridden:RecordGroupName="G_PAYMENT_TERM"/>
+  </FormModule>
+</Module>`;
+
+describe('parseFmbXml - Record Groups', () => {
+  it('should parse record groups with SQL queries', () => {
+    const result = parseFmbXml(FMB_XML_WITH_RECORD_GROUPS);
+    expect(result.recordGroups).toHaveLength(2);
+  });
+
+  it('should parse record group name and type', () => {
+    const result = parseFmbXml(FMB_XML_WITH_RECORD_GROUPS);
+    expect(result.recordGroups[0].name).toBe('G_PAYMENT_TERM');
+    expect(result.recordGroups[0].recordGroupType).toBe('Query');
+  });
+
+  it('should parse and decode SQL query with HTML entities', () => {
+    const result = parseFmbXml(FMB_XML_WITH_RECORD_GROUPS);
+    const query = result.recordGroups[0].query;
+    expect(query).toContain('select code_id,desc_e,desc_c');
+    expect(query).toContain('from pcs1016');
+    expect(query).toContain("where code_type = 'PAYMENT_TERM'");
+    // Check HTML entity decoding (&#10; -> newline)
+    expect(query).toContain('\n');
+  });
+
+  it('should parse record group columns', () => {
+    const result = parseFmbXml(FMB_XML_WITH_RECORD_GROUPS);
+    const columns = result.recordGroups[0].columns;
+    expect(columns).toHaveLength(3);
+    expect(columns[0].name).toBe('CODE_ID');
+    expect(columns[0].dataType).toBe('Character');
+    expect(columns[0].maxLength).toBe(32);
+  });
+
+  it('should return empty array when no record groups exist', () => {
+    const result = parseFmbXml(REAL_FMB_XML);
+    expect(result.recordGroups).toEqual([]);
+  });
+});

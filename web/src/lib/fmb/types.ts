@@ -77,12 +77,27 @@ export interface FmbLov {
   attributes: Record<string, string>;
 }
 
+export interface FmbRecordGroupColumn {
+  name: string;
+  dataType: string;
+  maxLength?: number;
+}
+
+export interface FmbRecordGroup {
+  name: string;
+  recordGroupType: string;
+  query?: string;
+  columns: FmbRecordGroupColumn[];
+  attributes: Record<string, string>;
+}
+
 export interface FmbModule {
   name: string;
   title?: string;
   blocks: FmbBlock[];
   canvases: FmbCanvas[];
   lovs: FmbLov[];
+  recordGroups: FmbRecordGroup[];
   triggers: FmbTrigger[];
   /** Module-level attributes */
   attributes: Record<string, string>;

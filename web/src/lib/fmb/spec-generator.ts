@@ -7,6 +7,8 @@
  */
 
 import type { FmbModule, FmbItem, FmbBlock } from './types';
+import type { TriggerSectionSpec } from './trigger-types';
+import { analyzeTriggers } from './trigger-analyzer';
 
 export interface FieldSpec {
   /** 編號 */
@@ -77,8 +79,32 @@ export interface LovSpec {
   name: string;
   /** Record Group Name (資料來源) */
   recordGroupName: string;
+  /** Record Group SQL 查詢 */
+  recordGroupQuery: string;
   /** LOV Columns */
   columns: LovColumnSpec[];
+}
+
+export interface RecordGroupColumnSpec {
+  /** 欄位名稱 */
+  name: string;
+  /** 資料類型 */
+  dataType: string;
+  /** 最大長度 */
+  maxLength?: number;
+}
+
+export interface RecordGroupSpec {
+  /** 編號 */
+  no: number;
+  /** Record Group 名稱 */
+  name: string;
+  /** 類型 (Query/Static) */
+  recordGroupType: string;
+  /** SQL 查詢語句 */
+  query: string;
+  /** 欄位定義 */
+  columns: RecordGroupColumnSpec[];
 }
 
 export interface FormSpec {
@@ -94,6 +120,10 @@ export interface FormSpec {
   buttons: ButtonSpec[];
   /** LOV 清單 */
   lovs: LovSpec[];
+  /** Record Group 清單 (含 SQL) */
+  recordGroups: RecordGroupSpec[];
+  /** 觸發器規則 */
+  triggers: TriggerSectionSpec;
 }
 
 /** Canvas names that contain visible form fields */
@@ -193,6 +223,12 @@ export function generateFormSpec(module: FmbModule): FormSpec {
   // Process LOVs
   const lovs = processLovs(module);
 
+  // Process Record Groups
+  const recordGroups = processRecordGroups(module);
+
+  // Process Triggers
+  const triggers = analyzeTriggers(module);
+
   return {
     formName: module.name,
     formTitle: module.title ?? module.name,
@@ -200,6 +236,8 @@ export function generateFormSpec(module: FmbModule): FormSpec {
     blocks,
     buttons,
     lovs,
+    recordGroups,
+    triggers,
   };
 }
 
@@ -263,17 +301,30 @@ function createFieldSpec(item: FmbItem, no: number): FieldSpec {
 /**
  * Process LOVs with column and return item information
  * Uses LOVColumnMapping from parsed FMB for accurate column/return item info
+ * Includes Record Group SQL query for each LOV
  */
 function processLovs(module: FmbModule): LovSpec[] {
   const lovs: LovSpec[] = [];
 
+  // Build a map of Record Group name -> query for quick lookup
+  const recordGroupMap = new Map<string, string>();
+  if (module.recordGroups) {
+    for (const rg of module.recordGroups) {
+      if (rg.recordGroupType === 'Query' && rg.query) {
+        recordGroupMap.set(rg.name, rg.query);
+      }
+    }
+  }
+
   let lovNo = 1;
   for (const lov of module.lovs) {
+    const recordGroupName = lov.recordGroupName ?? '';
     const lovSpec: LovSpec = {
       no: lovNo++,
       name: lov.name,
-      recordGroupName: lov.recordGroupName ?? '',
-      columns: lov.columnMappings.map((col) => ({
+      recordGroupName,
+      recordGroupQuery: recordGroupMap.get(recordGroupName) ?? '',
+      columns: (lov.columnMappings ?? []).map((col) => ({
         columnName: col.name,
         returnItem: col.returnItem,
       })),
@@ -282,6 +333,35 @@ function processLovs(module: FmbModule): LovSpec[] {
   }
 
   return lovs;
+}
+
+/**
+ * Process Record Groups with SQL query information
+ */
+function processRecordGroups(module: FmbModule): RecordGroupSpec[] {
+  const recordGroups: RecordGroupSpec[] = [];
+
+  if (!module.recordGroups) return recordGroups;
+
+  let rgNo = 1;
+  for (const rg of module.recordGroups) {
+    // Only include record groups with Query type (have SQL)
+    if (rg.recordGroupType === 'Query' && rg.query) {
+      recordGroups.push({
+        no: rgNo++,
+        name: rg.name,
+        recordGroupType: rg.recordGroupType,
+        query: rg.query,
+        columns: rg.columns.map((col) => ({
+          name: col.name,
+          dataType: col.dataType,
+          maxLength: col.maxLength,
+        })),
+      });
+    }
+  }
+
+  return recordGroups;
 }
 
 /**
@@ -412,29 +492,129 @@ export function generateMarkdownSpec(spec: FormSpec): string {
     lines.push('');
   }
 
-  // LOV (規格)
+  // LOV (規格) - 整合 Record Group SQL
   if (spec.lovs.length > 0) {
-    lines.push('## (3) LOV');
+    lines.push('## (3) LOV 與資料來源');
     lines.push('');
     lines.push('- A. Name：List of Value 名稱');
     lines.push('- B. Record Group Name：LOV 的資料來源');
     lines.push('- C. LOV Column Name：LOV 顯示的欄位');
     lines.push('- D. Return Item：點選 LOV 後回傳至畫面對應的欄位');
+    lines.push('- E. SQL Query：資料查詢語句');
     lines.push('');
-    lines.push('| No | Name | Record Group Name | LOV Column Name | Return Item |');
-    lines.push('|----|------|-------------------|-----------------|-------------|');
 
-    let rowNo = 1;
     for (const lov of spec.lovs) {
+      lines.push(`### ${lov.no}. ${lov.name}`);
+      lines.push('');
+      lines.push(`**Record Group:** ${lov.recordGroupName || '-'}`);
+      lines.push('');
+
+      // LOV Column mappings
       if (lov.columns.length > 0) {
+        lines.push('**欄位對應:**');
+        lines.push('| LOV Column Name | Return Item |');
+        lines.push('|-----------------|-------------|');
         for (const col of lov.columns) {
-          lines.push(`| ${rowNo++} | ${lov.name} | ${lov.recordGroupName} | ${col.columnName} | ${col.returnItem} |`);
+          lines.push(`| ${col.columnName} | ${col.returnItem} |`);
         }
-      } else {
-        lines.push(`| ${rowNo++} | ${lov.name} | ${lov.recordGroupName} | - | - |`);
+        lines.push('');
+      }
+
+      // SQL Query from Record Group
+      if (lov.recordGroupQuery) {
+        lines.push('**SQL Query:**');
+        lines.push('```sql');
+        lines.push(lov.recordGroupQuery);
+        lines.push('```');
+        lines.push('');
       }
     }
+  }
+
+  // Triggers (觸發器規則)
+  if (spec.triggers && spec.triggers.statistics.totalCount > 0) {
+    lines.push('## (4) 觸發器規則');
     lines.push('');
+
+    // Statistics
+    lines.push('### 統計摘要');
+    lines.push('');
+    lines.push('| 項目 | 數量 |');
+    lines.push('|------|------|');
+    lines.push(`| 總數 | ${spec.triggers.statistics.totalCount} |`);
+    lines.push(`| Form 層級 | ${spec.triggers.statistics.formLevelCount} |`);
+    lines.push(`| Block 層級 | ${spec.triggers.statistics.blockLevelCount} |`);
+    lines.push('');
+
+    // Form-level triggers
+    if (spec.triggers.formTriggers.length > 0) {
+      lines.push('### Form 層級觸發器');
+      lines.push('');
+      lines.push('| No | 名稱 | 事件描述 | 業務規則摘要 |');
+      lines.push('|----|------|----------|--------------|');
+      for (const t of spec.triggers.formTriggers) {
+        lines.push(`| ${t.no} | ${t.name} | ${t.eventDescription} | ${t.summary} |`);
+      }
+      lines.push('');
+    }
+
+    // Block-level triggers
+    for (const block of spec.triggers.blockTriggers) {
+      lines.push(`### Block: ${block.blockName}`);
+      lines.push('');
+      lines.push('| No | 名稱 | 事件描述 | 業務規則 | SQL |');
+      lines.push('|----|------|----------|----------|-----|');
+      for (const t of block.triggers) {
+        const hasSql = t.sqlStatements.length > 0 ? '✓' : '-';
+        lines.push(`| ${t.no} | ${t.name} | ${t.eventDescription} | ${t.summary} | ${hasSql} |`);
+      }
+      lines.push('');
+    }
+
+    // Detailed business rules
+    const allTriggers = [
+      ...spec.triggers.formTriggers,
+      ...spec.triggers.blockTriggers.flatMap(b => b.triggers),
+    ];
+    const triggersWithDetails = allTriggers.filter(
+      t => t.businessRules.length > 0 || t.sqlStatements.length > 0
+    );
+
+    if (triggersWithDetails.length > 0) {
+      lines.push('### 詳細業務規則');
+      lines.push('');
+
+      for (const t of triggersWithDetails) {
+        const blockInfo = t.level === 'Block' ? ` (Block: ${t.blockName})` : '';
+        lines.push(`#### ${t.no}. ${t.name}${blockInfo}`);
+        lines.push(`**事件描述:** ${t.eventDescription}`);
+        lines.push(`**Java 用途:** ${t.javaUse}`);
+        lines.push(`**Maximo Java 位置:** \`${t.maximoLocation}\``);
+        lines.push('');
+
+        if (t.businessRules.length > 0) {
+          lines.push('**業務規則:**');
+          for (const rule of t.businessRules) {
+            const fields = rule.affectedFields.length > 0
+              ? `\n  - 影響欄位: ${rule.affectedFields.join(', ')}`
+              : '';
+            lines.push(`- [${rule.type}] ${rule.description}${fields}`);
+          }
+          lines.push('');
+        }
+
+        if (t.sqlStatements.length > 0) {
+          lines.push('**SQL 語句:**');
+          lines.push('```sql');
+          for (const sql of t.sqlStatements) {
+            lines.push(`-- ${sql.type}`);
+            lines.push(sql.statement);
+          }
+          lines.push('```');
+          lines.push('');
+        }
+      }
+    }
   }
 
   return lines.join('\n');
