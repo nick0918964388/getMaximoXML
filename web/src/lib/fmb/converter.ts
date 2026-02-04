@@ -1,12 +1,69 @@
 import type { FmbModule, FmbItemType } from './types';
-import type { FieldType, FieldArea, InputMode, SAFieldDefinition } from '../types';
+import type { FieldType, FieldArea, InputMode, SAFieldDefinition, MaximoDataType } from '../types';
 import { DEFAULT_FIELD } from '../types';
+
+/** MBO name prefix for custom objects */
+const MBO_PREFIX = 'ZZ_';
+
+/**
+ * Field name patterns for type inference
+ */
+const AMOUNT_PATTERNS = ['AMT', 'AMOUNT', 'PRICE', 'COST'];
+const DATE_SUFFIXES = ['_DATE'];
+const DATETIME_SUFFIXES = ['_DATETIME', '_TIME', '_TIMESTAMP'];
+const YORN_SUFFIXES = ['_YN', '_FLAG'];
+const YORN_PREFIXES = ['IS_', 'HAS_'];
+const YORN_EXACT = ['FLAG'];
+const INTEGER_SUFFIXES = ['_QTY', '_NUM', '_COUNT', '_SEQ'];
+
+/**
+ * Infers Maximo data type from field name
+ * @param fieldName The field name to analyze
+ * @returns Inferred MaximoDataType
+ */
+export function inferMaxType(fieldName: string): MaximoDataType {
+  const upperName = fieldName.toUpperCase();
+
+  // Check for AMOUNT patterns (contains AMT, AMOUNT, PRICE, COST)
+  if (AMOUNT_PATTERNS.some(pattern => upperName.includes(pattern))) {
+    return 'AMOUNT';
+  }
+
+  // Check for DATETIME patterns (must check before DATE to avoid false positives)
+  // Also handle exact match for 'DATETIME'
+  if (upperName === 'DATETIME' || DATETIME_SUFFIXES.some(suffix => upperName.endsWith(suffix))) {
+    return 'DATETIME';
+  }
+
+  // Check for DATE patterns (ends with _DATE or exact match 'DATE')
+  if (upperName === 'DATE' || DATE_SUFFIXES.some(suffix => upperName.endsWith(suffix))) {
+    return 'DATE';
+  }
+
+  // Check for YORN patterns (ends with _YN/_FLAG, starts with IS_/HAS_, or exact match)
+  if (YORN_EXACT.includes(upperName) ||
+      YORN_SUFFIXES.some(suffix => upperName.endsWith(suffix)) ||
+      YORN_PREFIXES.some(prefix => upperName.startsWith(prefix))) {
+    return 'YORN';
+  }
+
+  // Check for INTEGER patterns (ends with _QTY, _NUM, _COUNT, _SEQ or exact matches)
+  if (upperName === 'QTY' || upperName === 'COUNT' || upperName === 'SEQ' ||
+      INTEGER_SUFFIXES.some(suffix => upperName.endsWith(suffix))) {
+    return 'INTEGER';
+  }
+
+  // Default to ALN for unrecognized patterns
+  return 'ALN';
+}
 
 export interface FmbConversionResult {
   fields: SAFieldDefinition[];
   metadata: {
     appName: string;
     appTitle: string;
+    /** MBO name with ZZ_ prefix */
+    mboName: string;
   };
 }
 
@@ -149,6 +206,7 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         lookup: item.lovName ?? '',
         length: item.maximumLength ?? 100,
         descDataattribute: descrAttribute ?? '',
+        maxType: inferMaxType(item.name),
       };
       fields.push(field);
     }
@@ -168,11 +226,15 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
     });
   }
 
+  // Generate mboName with ZZ_ prefix
+  const mboName = `${MBO_PREFIX}${module.name}`;
+
   return {
     fields,
     metadata: {
       appName: module.name,
       appTitle: module.title ?? module.name,
+      mboName,
     },
   };
 }

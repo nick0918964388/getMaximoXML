@@ -45,6 +45,7 @@ export type MaximoDataType =
   | 'SMALLINT'  // Small integer
   | 'DECIMAL'   // Decimal
   | 'FLOAT'     // Float
+  | 'AMOUNT'    // Currency/amount
   | 'DATE'      // Date only
   | 'DATETIME'  // Date and time
   | 'TIME'      // Time only

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { convertFmbToMaximo, mapItemType } from './converter';
+import { convertFmbToMaximo, mapItemType, inferMaxType } from './converter';
 import type { FmbModule } from './types';
 
 describe('mapItemType', () => {
@@ -168,10 +168,11 @@ describe('convertFmbToMaximo', () => {
     expect(result.fields[0].tabName).toBe('Main Tab');
   });
 
-  it('should populate metadata from module', () => {
+  it('should populate metadata from module with ZZ_ prefix for mboName', () => {
     const result = convertFmbToMaximo(fmbModule);
     expect(result.metadata.appName).toBe('MYFORM');
     expect(result.metadata.appTitle).toBe('My Form');
+    expect(result.metadata.mboName).toBe('ZZ_MYFORM');
   });
 
   it('should set subTabName for detail items with tabPage', () => {
@@ -580,17 +581,17 @@ describe('convertFmbToMaximo', () => {
 
     const result = convertFmbToMaximo(moduleWithCodeName);
 
-    // SUPPLY_CODE should become multiparttextbox with SUPPLY_NAME as descrAttribute
+    // SUPPLY_CODE should become multiparttextbox with SUPPLY_NAME as descDataattribute
     const supplyField = result.fields.find((f) => f.fieldName === 'SUPPLY_CODE' && f.area !== 'list');
     expect(supplyField).toBeDefined();
     expect(supplyField?.type).toBe('multiparttextbox');
-    expect(supplyField?.descrAttribute).toBe('SUPPLY_NAME');
+    expect(supplyField?.descDataattribute).toBe('SUPPLY_NAME');
 
-    // PSN_ID should become multiparttextbox with PSN_NAME as descrAttribute
+    // PSN_ID should become multiparttextbox with PSN_NAME as descDataattribute
     const psnField = result.fields.find((f) => f.fieldName === 'PSN_ID' && f.area !== 'list');
     expect(psnField).toBeDefined();
     expect(psnField?.type).toBe('multiparttextbox');
-    expect(psnField?.descrAttribute).toBe('PSN_NAME');
+    expect(psnField?.descDataattribute).toBe('PSN_NAME');
 
     // SUPPLY_NAME and PSN_NAME should NOT appear as separate fields (merged into multiparttextbox)
     const supplyNameField = result.fields.find((f) => f.fieldName === 'SUPPLY_NAME' && f.area !== 'list');
@@ -631,11 +632,11 @@ describe('convertFmbToMaximo', () => {
 
     const result = convertFmbToMaximo(moduleWithTextDesc);
 
-    // DEPARTMENT_CODE should become multiparttextbox with DEPT_NAME as descrAttribute
+    // DEPARTMENT_CODE should become multiparttextbox with DEPT_NAME as descDataattribute
     const deptField = result.fields.find((f) => f.fieldName === 'DEPARTMENT_CODE' && f.area !== 'list');
     expect(deptField).toBeDefined();
     expect(deptField?.type).toBe('multiparttextbox');
-    expect(deptField?.descrAttribute).toBe('DEPT_NAME');
+    expect(deptField?.descDataattribute).toBe('DEPT_NAME');
 
     // DEPT_NAME should NOT appear as separate field (merged into multiparttextbox)
     const deptNameField = result.fields.find((f) => f.fieldName === 'DEPT_NAME' && f.area !== 'list');
@@ -723,5 +724,290 @@ describe('convertFmbToMaximo', () => {
     // Should have 3 header fields from Tab canvas + list fields
     const headerFields = result.fields.filter((f) => f.area === 'header');
     expect(headerFields.length).toBe(3);
+  });
+});
+
+describe('inferMaxType', () => {
+  describe('AMOUNT type inference', () => {
+    it('should infer AMOUNT for fields containing AMT', () => {
+      expect(inferMaxType('TOTAL_AMT')).toBe('AMOUNT');
+      expect(inferMaxType('AMT')).toBe('AMOUNT');
+      expect(inferMaxType('LINE_AMT')).toBe('AMOUNT');
+    });
+
+    it('should infer AMOUNT for fields containing AMOUNT', () => {
+      expect(inferMaxType('TOTAL_AMOUNT')).toBe('AMOUNT');
+      expect(inferMaxType('AMOUNT')).toBe('AMOUNT');
+      expect(inferMaxType('NET_AMOUNT')).toBe('AMOUNT');
+    });
+
+    it('should infer AMOUNT for fields containing PRICE', () => {
+      expect(inferMaxType('UNIT_PRICE')).toBe('AMOUNT');
+      expect(inferMaxType('PRICE')).toBe('AMOUNT');
+      expect(inferMaxType('SALE_PRICE')).toBe('AMOUNT');
+    });
+
+    it('should infer AMOUNT for fields containing COST', () => {
+      expect(inferMaxType('TOTAL_COST')).toBe('AMOUNT');
+      expect(inferMaxType('COST')).toBe('AMOUNT');
+      expect(inferMaxType('UNIT_COST')).toBe('AMOUNT');
+    });
+  });
+
+  describe('DATE type inference', () => {
+    it('should infer DATE for fields ending with _DATE', () => {
+      expect(inferMaxType('START_DATE')).toBe('DATE');
+      expect(inferMaxType('END_DATE')).toBe('DATE');
+      expect(inferMaxType('CREATE_DATE')).toBe('DATE');
+      expect(inferMaxType('TRANS_DATE')).toBe('DATE');
+    });
+
+    it('should infer DATE for field named DATE', () => {
+      expect(inferMaxType('DATE')).toBe('DATE');
+    });
+  });
+
+  describe('DATETIME type inference', () => {
+    it('should infer DATETIME for fields ending with _DATETIME', () => {
+      expect(inferMaxType('CREATE_DATETIME')).toBe('DATETIME');
+      expect(inferMaxType('UPDATE_DATETIME')).toBe('DATETIME');
+    });
+
+    it('should infer DATETIME for fields ending with _TIME', () => {
+      expect(inferMaxType('START_TIME')).toBe('DATETIME');
+      expect(inferMaxType('END_TIME')).toBe('DATETIME');
+    });
+
+    it('should infer DATETIME for fields ending with _TIMESTAMP', () => {
+      expect(inferMaxType('CREATE_TIMESTAMP')).toBe('DATETIME');
+      expect(inferMaxType('MODIFY_TIMESTAMP')).toBe('DATETIME');
+    });
+
+    it('should infer DATETIME for field named DATETIME', () => {
+      expect(inferMaxType('DATETIME')).toBe('DATETIME');
+    });
+  });
+
+  describe('YORN type inference', () => {
+    it('should infer YORN for fields ending with _YN', () => {
+      expect(inferMaxType('ACTIVE_YN')).toBe('YORN');
+      expect(inferMaxType('COMPLETE_YN')).toBe('YORN');
+    });
+
+    it('should infer YORN for fields starting with IS_', () => {
+      expect(inferMaxType('IS_ACTIVE')).toBe('YORN');
+      expect(inferMaxType('IS_COMPLETE')).toBe('YORN');
+    });
+
+    it('should infer YORN for fields starting with HAS_', () => {
+      expect(inferMaxType('HAS_ATTACHMENT')).toBe('YORN');
+      expect(inferMaxType('HAS_ERROR')).toBe('YORN');
+    });
+
+    it('should infer YORN for fields ending with _FLAG', () => {
+      expect(inferMaxType('ACTIVE_FLAG')).toBe('YORN');
+      expect(inferMaxType('DELETE_FLAG')).toBe('YORN');
+      expect(inferMaxType('COMPLETE_FLAG')).toBe('YORN');
+    });
+
+    it('should infer YORN for field named FLAG', () => {
+      expect(inferMaxType('FLAG')).toBe('YORN');
+    });
+  });
+
+  describe('INTEGER type inference', () => {
+    it('should infer INTEGER for fields ending with _QTY', () => {
+      expect(inferMaxType('ORDER_QTY')).toBe('INTEGER');
+      expect(inferMaxType('QTY')).toBe('INTEGER');
+    });
+
+    it('should infer INTEGER for fields ending with _NUM', () => {
+      expect(inferMaxType('LINE_NUM')).toBe('INTEGER');
+      expect(inferMaxType('SEQ_NUM')).toBe('INTEGER');
+    });
+
+    it('should infer INTEGER for fields ending with _COUNT', () => {
+      expect(inferMaxType('ITEM_COUNT')).toBe('INTEGER');
+      expect(inferMaxType('COUNT')).toBe('INTEGER');
+    });
+
+    it('should infer INTEGER for fields ending with _SEQ', () => {
+      expect(inferMaxType('LINE_SEQ')).toBe('INTEGER');
+      expect(inferMaxType('SEQ')).toBe('INTEGER');
+    });
+  });
+
+  describe('default to ALN', () => {
+    it('should default to ALN for unrecognized field names', () => {
+      expect(inferMaxType('DESCRIPTION')).toBe('ALN');
+      expect(inferMaxType('NAME')).toBe('ALN');
+      expect(inferMaxType('SLIP_NO')).toBe('ALN');
+      expect(inferMaxType('STATUS')).toBe('ALN');
+    });
+  });
+
+  describe('case insensitivity', () => {
+    it('should handle lowercase field names', () => {
+      expect(inferMaxType('total_amount')).toBe('AMOUNT');
+      expect(inferMaxType('start_date')).toBe('DATE');
+      expect(inferMaxType('is_active')).toBe('YORN');
+    });
+
+    it('should handle mixed case field names', () => {
+      expect(inferMaxType('Total_Amount')).toBe('AMOUNT');
+      expect(inferMaxType('Start_Date')).toBe('DATE');
+    });
+  });
+});
+
+describe('convertFmbToMaximo maxType inference', () => {
+  it('should infer maxType for amount fields', () => {
+    const fmbModule: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN',
+          singleRecord: true,
+          items: [
+            { name: 'TOTAL_AMT', itemType: 'TEXT_ITEM', prompt: 'Total Amount', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'UNIT_PRICE', itemType: 'TEXT_ITEM', prompt: 'Unit Price', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(fmbModule);
+
+    const totalAmt = result.fields.find(f => f.fieldName === 'TOTAL_AMT' && f.area !== 'list');
+    expect(totalAmt?.maxType).toBe('AMOUNT');
+
+    const unitPrice = result.fields.find(f => f.fieldName === 'UNIT_PRICE' && f.area !== 'list');
+    expect(unitPrice?.maxType).toBe('AMOUNT');
+  });
+
+  it('should infer maxType for date fields', () => {
+    const fmbModule: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN',
+          singleRecord: true,
+          items: [
+            { name: 'START_DATE', itemType: 'TEXT_ITEM', prompt: 'Start Date', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'CREATE_DATETIME', itemType: 'TEXT_ITEM', prompt: 'Created', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(fmbModule);
+
+    const startDate = result.fields.find(f => f.fieldName === 'START_DATE' && f.area !== 'list');
+    expect(startDate?.maxType).toBe('DATE');
+
+    const createDatetime = result.fields.find(f => f.fieldName === 'CREATE_DATETIME' && f.area !== 'list');
+    expect(createDatetime?.maxType).toBe('DATETIME');
+  });
+
+  it('should infer maxType for boolean fields', () => {
+    const fmbModule: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN',
+          singleRecord: true,
+          items: [
+            { name: 'IS_ACTIVE', itemType: 'TEXT_ITEM', prompt: 'Active', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'COMPLETE_YN', itemType: 'TEXT_ITEM', prompt: 'Complete', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(fmbModule);
+
+    const isActive = result.fields.find(f => f.fieldName === 'IS_ACTIVE' && f.area !== 'list');
+    expect(isActive?.maxType).toBe('YORN');
+
+    const completeYn = result.fields.find(f => f.fieldName === 'COMPLETE_YN' && f.area !== 'list');
+    expect(completeYn?.maxType).toBe('YORN');
+  });
+
+  it('should infer maxType for integer fields', () => {
+    const fmbModule: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN',
+          singleRecord: true,
+          items: [
+            { name: 'ORDER_QTY', itemType: 'TEXT_ITEM', prompt: 'Quantity', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'LINE_SEQ', itemType: 'TEXT_ITEM', prompt: 'Sequence', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(fmbModule);
+
+    const orderQty = result.fields.find(f => f.fieldName === 'ORDER_QTY' && f.area !== 'list');
+    expect(orderQty?.maxType).toBe('INTEGER');
+
+    const lineSeq = result.fields.find(f => f.fieldName === 'LINE_SEQ' && f.area !== 'list');
+    expect(lineSeq?.maxType).toBe('INTEGER');
+  });
+
+  it('should default to ALN for regular fields', () => {
+    const fmbModule: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'MAIN',
+          singleRecord: true,
+          items: [
+            { name: 'DESCRIPTION', itemType: 'TEXT_ITEM', prompt: 'Description', canvas: 'CANVAS_BODY', attributes: {} },
+            { name: 'STATUS', itemType: 'TEXT_ITEM', prompt: 'Status', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(fmbModule);
+
+    const description = result.fields.find(f => f.fieldName === 'DESCRIPTION' && f.area !== 'list');
+    expect(description?.maxType).toBe('ALN');
+
+    const status = result.fields.find(f => f.fieldName === 'STATUS' && f.area !== 'list');
+    expect(status?.maxType).toBe('ALN');
   });
 });
