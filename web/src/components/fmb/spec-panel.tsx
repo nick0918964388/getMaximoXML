@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, Check, Download, FileText, ChevronDown, ChevronRight, Code, Database } from 'lucide-react';
 import type { FmbModule } from '@/lib/fmb/types';
 import { generateFormSpec, generateMarkdownSpec, type FormSpec } from '@/lib/fmb/spec-generator';
+import { downloadWordDocument } from '@/lib/fmb/word-generator';
 import type { TriggerSpec } from '@/lib/fmb/trigger-types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -37,6 +38,15 @@ export function SpecPanel({ module }: SpecPanelProps) {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadWord = async () => {
+    try {
+      await downloadWordDocument(spec, spec.formName);
+    } catch (error) {
+      console.error('Word generation error:', error);
+      // Could add toast notification here if needed
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -56,7 +66,11 @@ export function SpecPanel({ module }: SpecPanelProps) {
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-1" />
-                下載
+                下載 Markdown
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadWord}>
+                <FileText className="h-4 w-4 mr-1" />
+                下載 Word
               </Button>
             </div>
           </div>
