@@ -10,6 +10,15 @@
  * - Record Groups (SQL queries)
  */
 
+export interface FmbTabPageSpec {
+  /** TabPage name */
+  name: string;
+  /** TabPage label */
+  label: string;
+  /** Canvas name */
+  canvasName: string;
+}
+
 export interface FmbFieldSpec {
   /** Field name */
   name: string;
@@ -39,6 +48,8 @@ export interface FmbFieldSpec {
   visible: boolean;
   /** Canvas name (for layout grouping) */
   canvasName: string;
+  /** TabPage name (for tab grouping) */
+  tabPageName: string;
   /** X position */
   xPosition: number;
   /** Y position */
@@ -103,6 +114,8 @@ export interface FmbFormSpec {
     queryType: string;
     query: string;
   }>;
+  /** TabPages */
+  tabPages: FmbTabPageSpec[];
 }
 
 /**
@@ -164,6 +177,7 @@ export class FmbSpecExtractor {
       lovs: [],
       buttons: [],
       recordGroups: [],
+      tabPages: [],
     };
 
     // Extract FormModule info
@@ -184,6 +198,9 @@ export class FmbSpecExtractor {
 
     // Extract standalone buttons
     spec.buttons = this.extractButtons();
+
+    // Extract TabPages
+    spec.tabPages = this.extractTabPages();
 
     return spec;
   }
@@ -274,6 +291,7 @@ export class FmbSpecExtractor {
         updateAllowed: this.extractBoolAttr(attrs, 'UpdateAllowed', true),
         visible: this.extractBoolAttr(attrs, 'Visible', true),
         canvasName: this.extractAttr(attrs, 'CanvasName'),
+        tabPageName: this.extractAttr(attrs, 'TabPageName'),
         xPosition: this.extractNumAttr(attrs, 'XPosition'),
         yPosition: this.extractNumAttr(attrs, 'YPosition'),
         width: this.extractNumAttr(attrs, 'Width'),
@@ -401,6 +419,30 @@ export class FmbSpecExtractor {
   }
 
   /**
+   * Extract TabPages
+   */
+  private extractTabPages(): FmbTabPageSpec[] {
+    const tabPages: FmbTabPageSpec[] = [];
+    const tabPagePattern = /<TabPage\s+([^>]+)>/g;
+
+    let match;
+    while ((match = tabPagePattern.exec(this.content)) !== null) {
+      const attrs = match[1];
+      const name = this.extractAttr(attrs, 'Name');
+
+      if (!name) continue;
+
+      tabPages.push({
+        name,
+        label: this.extractAttr(attrs, 'Label'),
+        canvasName: '',
+      });
+    }
+
+    return tabPages;
+  }
+
+  /**
    * Extract buttons
    */
   private extractButtons(): FmbButtonSpec[] {
@@ -459,6 +501,18 @@ export class FmbSpecExtractor {
     lines.push('');
     lines.push(`**表單標題:** ${spec.title || 'N/A'}`);
     lines.push('');
+
+    // TabPages
+    if (spec.tabPages && spec.tabPages.length > 0) {
+      lines.push('## TabPages (頁籤)');
+      lines.push('');
+      lines.push('| 頁籤名稱 | 標籤 |');
+      lines.push('|----------|------|');
+      for (const tabPage of spec.tabPages) {
+        lines.push(`| ${tabPage.name} | ${tabPage.label || '-'} |`);
+      }
+      lines.push('');
+    }
 
     // Header fields
     const headerBlock = spec.blocks.find(

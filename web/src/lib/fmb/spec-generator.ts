@@ -10,6 +10,15 @@ import type { FmbModule, FmbItem, FmbBlock } from './types';
 import type { TriggerSectionSpec } from './trigger-types';
 import { analyzeTriggers } from './trigger-analyzer';
 
+export interface TabPageSpec {
+  /** 頁籤名稱 */
+  name: string;
+  /** 頁籤標籤 */
+  label: string;
+  /** Canvas 名稱 */
+  canvasName: string;
+}
+
 export interface FieldSpec {
   /** 編號 */
   no: number;
@@ -35,6 +44,8 @@ export interface FieldSpec {
   initialValue: string;
   /** Remark (備註) */
   remark: string;
+  /** TabPage 名稱 */
+  tabPage: string;
 }
 
 export interface ButtonSpec {
@@ -124,6 +135,8 @@ export interface FormSpec {
   recordGroups: RecordGroupSpec[];
   /** 觸發器規則 */
   triggers: TriggerSectionSpec;
+  /** TabPages (頁籤) */
+  tabPages: TabPageSpec[];
 }
 
 /** Canvas names that contain visible form fields */
@@ -229,6 +242,9 @@ export function generateFormSpec(module: FmbModule): FormSpec {
   // Process Triggers
   const triggers = analyzeTriggers(module);
 
+  // Process TabPages
+  const tabPages = processTabPages(module);
+
   return {
     formName: module.name,
     formTitle: module.title ?? module.name,
@@ -238,6 +254,7 @@ export function generateFormSpec(module: FmbModule): FormSpec {
     lovs,
     recordGroups,
     triggers,
+    tabPages,
   };
 }
 
@@ -295,6 +312,7 @@ function createFieldSpec(item: FmbItem, no: number): FieldSpec {
     updateAllowed: item.enabled !== false,
     initialValue: getAttr(attrs, 'InitialValue'),
     remark: inferFieldRemark(item),
+    tabPage: item.tabPage ?? '',
   };
 }
 
@@ -362,6 +380,25 @@ function processRecordGroups(module: FmbModule): RecordGroupSpec[] {
   }
 
   return recordGroups;
+}
+
+/**
+ * Process TabPages from canvases
+ */
+function processTabPages(module: FmbModule): TabPageSpec[] {
+  const tabPages: TabPageSpec[] = [];
+
+  for (const canvas of module.canvases) {
+    for (const tabPage of canvas.tabPages) {
+      tabPages.push({
+        name: tabPage.name,
+        label: tabPage.label ?? '',
+        canvasName: canvas.name,
+      });
+    }
+  }
+
+  return tabPages;
 }
 
 /**
@@ -439,6 +476,18 @@ export function generateMarkdownSpec(spec: FormSpec): string {
   lines.push('');
   lines.push(`**程式名稱:** ${spec.formTitle}`);
   lines.push('');
+
+  // TabPages (頁籤)
+  if (spec.tabPages && spec.tabPages.length > 0) {
+    lines.push('## TabPages (頁籤)');
+    lines.push('');
+    lines.push('| 頁籤名稱 | 標籤 |');
+    lines.push('|----------|------|');
+    for (const tabPage of spec.tabPages) {
+      lines.push(`| ${tabPage.name} | ${tabPage.label || '-'} |`);
+    }
+    lines.push('');
+  }
 
   // Blocks (畫面規格)
   spec.blocks.forEach((block, idx) => {

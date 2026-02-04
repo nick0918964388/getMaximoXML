@@ -28,8 +28,8 @@ const MAX_LIST_FIELDS = 10;
 /** Block names to skip during conversion */
 const SKIP_BLOCKS = ['TOOL_BUTTON', 'HEAD_BLOCK'];
 
-/** Canvas names that contain visible form fields */
-const VISIBLE_CANVASES = ['CANVAS_BODY', 'CANVAS_TAB'];
+/** Default canvas names that contain visible form fields */
+const DEFAULT_VISIBLE_CANVASES = ['CANVAS_BODY', 'CANVAS_TAB'];
 
 /** Canvas that maps to header area */
 const HEADER_CANVAS = 'CANVAS_BODY';
@@ -42,12 +42,20 @@ const SKIP_RELATIONSHIPS = ['PCS1005'];
  */
 export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
   // Build tabPage name → label map from canvases
+  // Also collect canvases that have TabPages (Tab type canvases)
   const tabPageLabelMap = new Map<string, string>();
+  const tabCanvasNames = new Set<string>();
+
   for (const canvas of module.canvases) {
     for (const tp of canvas.tabPages) {
       if (tp.label) tabPageLabelMap.set(tp.name, tp.label);
+      // Track canvases that contain TabPages
+      tabCanvasNames.add(canvas.name);
     }
   }
+
+  // Build set of visible canvases: default + any canvas with TabPages
+  const visibleCanvases = new Set([...DEFAULT_VISIBLE_CANVASES, ...tabCanvasNames]);
 
   const fields: SAFieldDefinition[] = [];
   // Track display items that have been merged into multiparttextbox
@@ -83,8 +91,8 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
     }
 
     for (const item of block.items) {
-      // Skip items not on visible canvases (CANVAS_BODY or CANVAS_TAB)
-      if (!item.canvas || !VISIBLE_CANVASES.includes(item.canvas)) {
+      // Skip items not on visible canvases (CANVAS_BODY, CANVAS_TAB, or any Tab canvas with TabPages)
+      if (!item.canvas || !visibleCanvases.has(item.canvas)) {
         continue;
       }
 
@@ -98,8 +106,16 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         continue;
       }
 
-      // Determine area based on canvas: CANVAS_BODY=header, CANVAS_TAB=detail
-      const area: FieldArea = item.canvas === HEADER_CANVAS ? 'header' : 'detail';
+      // Determine area based on canvas:
+      // - CANVAS_BODY = header area
+      // - Non-default Tab canvas (canvas with TabPages, not in DEFAULT_VISIBLE_CANVASES) + item has tabPage
+      //   = header area (creates main tabs) - e.g., CANVAS_BODY2 in ODGLS148
+      // - Default canvases like CANVAS_TAB = detail area (for detail tables with sub-tabs)
+      const isNonDefaultTabCanvas =
+        tabCanvasNames.has(item.canvas ?? '') &&
+        !DEFAULT_VISIBLE_CANVASES.includes(item.canvas ?? '') &&
+        item.tabPage;
+      const area: FieldArea = (item.canvas === HEADER_CANVAS || isNonDefaultTabCanvas) ? 'header' : 'detail';
 
       // Skip summary tables (PCS1005) for detail items
       if (area === 'detail' && SKIP_RELATIONSHIPS.includes(block.queryDataSource ?? '')) {
@@ -126,8 +142,8 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
         area,
         inputMode: resolveInputMode(item.required, item.enabled),
         relationship: area === 'detail' ? (block.queryDataSource ?? '') : '',
-        // For header items, tabPage becomes tabName
-        // For detail items, tabPage becomes subTabName (creates sub-tabs for each tabPage)
+        // For header items, tabPage becomes tabName (creates main tabs)
+        // For detail items, tabPage becomes subTabName (creates sub-tabs within a detail area)
         tabName: area === 'header' && tabPageLabel ? tabPageLabel : '',
         subTabName: area === 'detail' && tabPageLabel ? tabPageLabel : '',
         lookup: item.lovName ?? '',

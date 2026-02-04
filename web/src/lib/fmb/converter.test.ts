@@ -669,4 +669,59 @@ describe('convertFmbToMaximo', () => {
     expect(miscSubType).toBeDefined();
     expect(miscSubType?.type).toBe('combobox');
   });
+
+  it('should include items on Tab canvas (like CANVAS_BODY2) with TabPages as main tabs', () => {
+    // This simulates ODGLS148 structure where CANVAS_BODY2 is a Tab canvas with multiple TabPages
+    // Items on Tab canvases with TabPages should create MAIN TABS (header area with tabName)
+    const moduleWithTabCanvas: FmbModule = {
+      name: 'ODGLS148',
+      title: 'General Ledger',
+      blocks: [
+        {
+          name: 'B2GLG7050',
+          singleRecord: false,
+          queryDataSource: 'GLG7050',
+          items: [
+            { name: 'ITEM_CODE', itemType: 'TEXT_ITEM', prompt: 'Code', canvas: 'CANVAS_BODY2', tabPage: 'EDI_CLASS', visible: true, attributes: {} },
+            { name: 'NEW_ITEM', itemType: 'TEXT_ITEM', prompt: 'New Item', canvas: 'CANVAS_BODY2', tabPage: 'EDI_CLASS', visible: true, attributes: {} },
+            { name: 'COMBINE_AMT', itemType: 'TEXT_ITEM', prompt: 'Combine Amount', canvas: 'CANVAS_BODY2', tabPage: 'COMBINE_CLASS', visible: true, attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [
+        {
+          name: 'CANVAS_BODY2',
+          canvasType: 'Tab',
+          tabPages: [
+            { name: 'EDI_CLASS', label: '單一財報', attributes: {} },
+            { name: 'COMBINE_CLASS', label: '合併底稿', attributes: {} },
+          ],
+          attributes: {},
+        },
+      ],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithTabCanvas);
+
+    // Items on CANVAS_BODY2 (Tab canvas) should be HEADER with tabName to create MAIN TABS
+    const itemCode = result.fields.find((f) => f.fieldName === 'ITEM_CODE' && f.area !== 'list');
+    expect(itemCode).toBeDefined();
+    expect(itemCode?.area).toBe('header'); // Tab canvas items create main tabs (header area)
+    expect(itemCode?.tabName).toBe('單一財報'); // TabPage label used as tabName for main tabs
+    expect(itemCode?.subTabName).toBe(''); // Not sub-tabs
+
+    const combineAmt = result.fields.find((f) => f.fieldName === 'COMBINE_AMT' && f.area !== 'list');
+    expect(combineAmt).toBeDefined();
+    expect(combineAmt?.area).toBe('header');
+    expect(combineAmt?.tabName).toBe('合併底稿'); // Different TabPage = different main tab
+
+    // Should have 3 header fields from Tab canvas + list fields
+    const headerFields = result.fields.filter((f) => f.area === 'header');
+    expect(headerFields.length).toBe(3);
+  });
 });

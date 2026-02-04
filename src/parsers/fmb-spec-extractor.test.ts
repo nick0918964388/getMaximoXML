@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FmbSpecExtractor } from './fmb-spec-extractor';
+import { FmbSpecExtractor, FmbTabPageSpec } from './fmb-spec-extractor';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -229,6 +229,90 @@ describe('FmbSpecExtractor', () => {
     });
   });
 
+  describe('TabPage extraction', () => {
+    it('should extract TabPage name and label from XML', () => {
+      const xml = `
+        <Module>
+          <FormModule TEST_overridden:Name="TESTFORM" TEST_default:Title="Test">
+          </FormModule>
+          <TabPage TEST_overridden:Name="TAB_PAGE_1" TEST_overridden:Label="First Tab">
+          </TabPage>
+          <TabPage TEST_overridden:Name="TAB_PAGE_2" TEST_default:Label="Second Tab">
+          </TabPage>
+        </Module>
+      `;
+
+      const spec = extractor.parse(xml);
+
+      expect(spec.tabPages).toHaveLength(2);
+      expect(spec.tabPages[0].name).toBe('TAB_PAGE_1');
+      expect(spec.tabPages[0].label).toBe('First Tab');
+      expect(spec.tabPages[1].name).toBe('TAB_PAGE_2');
+      expect(spec.tabPages[1].label).toBe('Second Tab');
+    });
+
+    it('should return empty array when no TabPages exist', () => {
+      const xml = `
+        <Module>
+          <FormModule TEST_overridden:Name="TESTFORM" TEST_default:Title="Test">
+          </FormModule>
+        </Module>
+      `;
+
+      const spec = extractor.parse(xml);
+
+      expect(spec.tabPages).toHaveLength(0);
+    });
+
+    it('should extract TabPageName attribute from Items', () => {
+      const xml = `
+        <Module>
+          <FormModule TEST_overridden:Name="TESTFORM" TEST_default:Title="Test">
+          </FormModule>
+          <Block TEST_overridden:Name="B1"
+                 TEST_default:SingleRecord="true"
+                 TEST_default:RecordsDisplayCount="1">
+          </Block>
+          <Item TEST_overridden:Name="B1_FIELD1"
+                TEST_default:Prompt="Field 1"
+                TEST_default:ItemType="Text Item"
+                TEST_default:DataType="Char"
+                TEST_overridden:TabPageName="MY_TAB_PAGE"/>
+        </Module>
+      `;
+
+      const spec = extractor.parse(xml);
+      const field = spec.blocks[0]?.fields.find(f => f.name === 'B1_FIELD1');
+
+      expect(field).toBeDefined();
+      expect(field!.tabPageName).toBe('MY_TAB_PAGE');
+    });
+
+    it('should return empty string for Items without TabPageName', () => {
+      const xml = `
+        <Module>
+          <FormModule TEST_overridden:Name="TESTFORM" TEST_default:Title="Test">
+          </FormModule>
+          <Block TEST_overridden:Name="B1"
+                 TEST_default:SingleRecord="true"
+                 TEST_default:RecordsDisplayCount="1">
+          </Block>
+          <Item TEST_overridden:Name="B1_FIELD1"
+                TEST_default:Prompt="Field 1"
+                TEST_default:ItemType="Text Item"
+                TEST_default:DataType="Char"
+                TEST_default:TabPageName=""/>
+        </Module>
+      `;
+
+      const spec = extractor.parse(xml);
+      const field = spec.blocks[0]?.fields.find(f => f.name === 'B1_FIELD1');
+
+      expect(field).toBeDefined();
+      expect(field!.tabPageName).toBe('');
+    });
+  });
+
   describe('real FMB file parsing', () => {
     it('should parse ODPCS126_fmb.xml', async () => {
       const fmbPath = path.join(
@@ -301,6 +385,95 @@ describe('FmbSpecExtractor', () => {
 
       expect(lovDeptCode!.columns[1].name).toBe('NAME_E');
       expect(lovDeptCode!.columns[1].returnItem).toBe('');
+    });
+
+    it('should extract 10 TabPages from ODGLS148_fmb.xml', async () => {
+      const fmbPath = path.join(
+        __dirname,
+        '../../spec/xml/ODGLS148_fmb.xml'
+      );
+
+      // Skip if file doesn't exist
+      if (!fs.existsSync(fmbPath)) {
+        console.log('Skipping: ODGLS148_fmb.xml not found');
+        return;
+      }
+
+      const content = fs.readFileSync(fmbPath, 'utf-8');
+      const spec = extractor.parse(content);
+
+      expect(spec.tabPages).toHaveLength(10);
+
+      // Verify the expected TabPages with their labels
+      const expectedTabPages = [
+        { name: 'EDI_CLASS', label: '單一財報' },
+        { name: 'ITEM_CHK_CLASS', label: '科目檢核' },
+        { name: 'COMBINE_CLASS', label: '合併底稿' },
+        { name: 'COMBINE_ADJ_CLASS', label: '合併底稿調整' },
+        { name: 'C_CLASS', label: '(C)投資損益' },
+        { name: 'K_CLASS', label: '(K)股權淨值' },
+        { name: 'D_CLASS', label: '(D)帳面價值' },
+        { name: 'ADJ_CLASS', label: '沖銷' },
+        { name: 'HIS_CLASS', label: '歷史匯率金額' },
+        { name: 'FIRST_CLASS', label: 'ROC開帳數' },
+      ];
+
+      expectedTabPages.forEach((expected, index) => {
+        expect(spec.tabPages[index].name).toBe(expected.name);
+        expect(spec.tabPages[index].label).toBe(expected.label);
+      });
+    });
+
+    it('should extract TabPageName from fields in ODGLS148_fmb.xml', async () => {
+      const fmbPath = path.join(
+        __dirname,
+        '../../spec/xml/ODGLS148_fmb.xml'
+      );
+
+      // Skip if file doesn't exist
+      if (!fs.existsSync(fmbPath)) {
+        console.log('Skipping: ODGLS148_fmb.xml not found');
+        return;
+      }
+
+      const content = fs.readFileSync(fmbPath, 'utf-8');
+      const spec = extractor.parse(content);
+
+      // Find fields with TabPageName set
+      const allFields = spec.blocks.flatMap(b => b.fields);
+      const fieldsWithTabPage = allFields.filter(f => f.tabPageName);
+
+      // Verify some fields have TabPageName
+      expect(fieldsWithTabPage.length).toBeGreaterThan(0);
+
+      // Verify EDI_CLASS tab has fields
+      const ediClassFields = allFields.filter(f => f.tabPageName === 'EDI_CLASS');
+      expect(ediClassFields.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('generateMarkdownSpec with TabPages', () => {
+    it('should include TabPage section in markdown output', () => {
+      const spec = {
+        name: 'TESTFORM',
+        title: 'Test Form',
+        blocks: [],
+        lovs: [],
+        buttons: [],
+        recordGroups: [],
+        tabPages: [
+          { name: 'TAB1', label: 'First Tab', canvasName: '' },
+          { name: 'TAB2', label: 'Second Tab', canvasName: '' },
+        ],
+      };
+
+      const markdown = extractor.generateMarkdownSpec(spec);
+
+      expect(markdown).toContain('## TabPages (頁籤)');
+      expect(markdown).toContain('TAB1');
+      expect(markdown).toContain('First Tab');
+      expect(markdown).toContain('TAB2');
+      expect(markdown).toContain('Second Tab');
     });
   });
 });

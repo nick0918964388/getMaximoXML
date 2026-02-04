@@ -498,4 +498,153 @@ describe('spec-generator', () => {
       expect(markdown).not.toContain('## (3) LOV');
     });
   });
+
+  describe('tabPages', () => {
+    it('should extract TabPages from canvases', () => {
+      const moduleWithTabPages: FmbModule = {
+        name: 'ODGLS148',
+        title: 'General Ledger',
+        blocks: [],
+        canvases: [
+          {
+            name: 'CANVAS_BODY2',
+            canvasType: 'Tab',
+            tabPages: [
+              { name: 'EDI_CLASS', label: '單一財報', attributes: {} },
+              { name: 'ITEM_CHK_CLASS', label: '科目檢核', attributes: {} },
+              { name: 'COMBINE_CLASS', label: '合併底稿', attributes: {} },
+            ],
+            attributes: {},
+          },
+          {
+            name: 'CANVAS_HEAD',
+            canvasType: 'Stacked',
+            tabPages: [],
+            attributes: {},
+          },
+        ],
+        lovs: [],
+        recordGroups: [],
+        triggers: [],
+        attributes: {},
+      };
+
+      const spec = generateFormSpec(moduleWithTabPages);
+
+      expect(spec.tabPages).toHaveLength(3);
+      expect(spec.tabPages[0].name).toBe('EDI_CLASS');
+      expect(spec.tabPages[0].label).toBe('單一財報');
+      expect(spec.tabPages[1].name).toBe('ITEM_CHK_CLASS');
+      expect(spec.tabPages[1].label).toBe('科目檢核');
+      expect(spec.tabPages[2].name).toBe('COMBINE_CLASS');
+      expect(spec.tabPages[2].label).toBe('合併底稿');
+    });
+
+    it('should return empty array when no TabPages exist', () => {
+      const moduleWithoutTabPages: FmbModule = {
+        name: 'TEST',
+        title: 'Test',
+        blocks: [],
+        canvases: [
+          {
+            name: 'CANVAS_BODY',
+            canvasType: 'Stacked',
+            tabPages: [],
+            attributes: {},
+          },
+        ],
+        lovs: [],
+        recordGroups: [],
+        triggers: [],
+        attributes: {},
+      };
+
+      const spec = generateFormSpec(moduleWithoutTabPages);
+
+      expect(spec.tabPages).toHaveLength(0);
+    });
+
+    it('should include tabPage in field spec', () => {
+      const moduleWithTabPageFields: FmbModule = {
+        name: 'TEST',
+        title: 'Test',
+        blocks: [
+          {
+            name: 'B1',
+            queryDataSource: 'TEST_TABLE',
+            singleRecord: false,
+            items: [
+              {
+                name: 'FIELD1',
+                itemType: 'TEXT_ITEM',
+                prompt: 'Field 1',
+                canvas: 'CANVAS_BODY',
+                tabPage: 'TAB_PAGE_1',
+                visible: true,
+                attributes: {},
+              },
+              {
+                name: 'FIELD2',
+                itemType: 'TEXT_ITEM',
+                prompt: 'Field 2',
+                canvas: 'CANVAS_BODY',
+                tabPage: 'TAB_PAGE_2',
+                visible: true,
+                attributes: {},
+              },
+            ],
+            triggers: [],
+            attributes: {},
+          },
+        ],
+        canvases: [],
+        lovs: [],
+        recordGroups: [],
+        triggers: [],
+        attributes: {},
+      };
+
+      const spec = generateFormSpec(moduleWithTabPageFields);
+
+      expect(spec.blocks[0].fields[0].tabPage).toBe('TAB_PAGE_1');
+      expect(spec.blocks[0].fields[1].tabPage).toBe('TAB_PAGE_2');
+    });
+
+    it('should include TabPage section in markdown output', () => {
+      const moduleWithTabPages: FmbModule = {
+        name: 'ODGLS148',
+        title: 'General Ledger',
+        blocks: [],
+        canvases: [
+          {
+            name: 'CANVAS_BODY2',
+            canvasType: 'Tab',
+            tabPages: [
+              { name: 'EDI_CLASS', label: '單一財報', attributes: {} },
+              { name: 'ITEM_CHK_CLASS', label: '科目檢核', attributes: {} },
+            ],
+            attributes: {},
+          },
+        ],
+        lovs: [],
+        recordGroups: [],
+        triggers: [],
+        attributes: {},
+      };
+
+      const spec = generateFormSpec(moduleWithTabPages);
+      const markdown = generateMarkdownSpec(spec);
+
+      expect(markdown).toContain('## TabPages (頁籤)');
+      expect(markdown).toContain('| EDI_CLASS | 單一財報 |');
+      expect(markdown).toContain('| ITEM_CHK_CLASS | 科目檢核 |');
+    });
+
+    it('should skip TabPage section if no TabPages', () => {
+      const spec = generateFormSpec(mockModule); // mockModule has no TabPages
+      const markdown = generateMarkdownSpec(spec);
+
+      expect(markdown).not.toContain('## TabPages (頁籤)');
+    });
+  });
 });
