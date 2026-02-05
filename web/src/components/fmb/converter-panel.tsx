@@ -26,8 +26,8 @@ export function ConverterPanel({ module }: ConverterPanelProps) {
     const metadata: ApplicationMetadata = {
       ...DEFAULT_METADATA,
       id: result.metadata.appName,
-      mboName: result.metadata.appName,
-      keyAttribute: `${result.metadata.appName}ID`,
+      mboName: result.metadata.mboName,
+      keyAttribute: `${result.metadata.mboName}ID`,
     };
     return generateApplication(appDef, metadata);
   }, [result]);

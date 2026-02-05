@@ -6,11 +6,13 @@ import { UploadPanel } from '@/components/fmb/upload-panel';
 import { TreeViewer } from '@/components/fmb/tree-viewer';
 import { ConverterPanel } from '@/components/fmb/converter-panel';
 import { SpecPanel } from '@/components/fmb/spec-panel';
+import { DbcPanel } from '@/components/fmb/dbc-panel';
 import { UploadHistory } from '@/components/fmb/upload-history';
 import { parseFmbXml } from '@/lib/fmb/parser';
 import { addUploadHistory } from '@/lib/fmb/history';
-import { convertFmbToMaximo } from '@/lib/fmb/converter';
+import { convertFmbToMaximo, type FmbConversionResult } from '@/lib/fmb/converter';
 import type { FmbModule } from '@/lib/fmb/types';
+import { DEFAULT_METADATA } from '@/lib/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
@@ -20,6 +22,7 @@ export default function FmbConverterPage() {
   const [error, setError] = useState<string>('');
   const [parsing, setParsing] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [conversionResult, setConversionResult] = useState<FmbConversionResult | null>(null);
 
   const loadXml = useCallback((content: string, name: string, saveHistory: boolean) => {
     setError('');
@@ -30,9 +33,12 @@ export default function FmbConverterPage() {
         setModule(parsed);
         setFileName(name);
 
-        if (saveHistory) {
-          try {
-            const result = convertFmbToMaximo(parsed);
+        // Always convert to get fields for DBC panel
+        try {
+          const result = convertFmbToMaximo(parsed);
+          setConversionResult(result);
+
+          if (saveHistory) {
             addUploadHistory({
               fileName: name,
               moduleName: parsed.name,
@@ -40,13 +46,15 @@ export default function FmbConverterPage() {
               xmlContent: content,
             });
             setHistoryKey((k) => k + 1);
-          } catch {
-            // History save failure is non-critical
           }
+        } catch {
+          // Conversion failure is non-critical for viewing
+          setConversionResult(null);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : '解析失敗');
         setModule(null);
+        setConversionResult(null);
       } finally {
         setParsing(false);
       }
@@ -103,6 +111,7 @@ export default function FmbConverterPage() {
                   <TabsTrigger value="tree">結構瀏覽</TabsTrigger>
                   <TabsTrigger value="convert">轉換 Maximo</TabsTrigger>
                   <TabsTrigger value="spec">規格文檔</TabsTrigger>
+                  <TabsTrigger value="dbc">DBC 產生器</TabsTrigger>
                 </TabsList>
                 <TabsContent value="tree">
                   <TreeViewer module={module} />
@@ -112,6 +121,17 @@ export default function FmbConverterPage() {
                 </TabsContent>
                 <TabsContent value="spec">
                   <SpecPanel module={module} />
+                </TabsContent>
+                <TabsContent value="dbc">
+                  <DbcPanel
+                    fmbModule={module}
+                    fields={conversionResult?.fields ?? []}
+                    metadata={{
+                      ...DEFAULT_METADATA,
+                      id: module.name,
+                      mboName: conversionResult?.metadata.mboName ?? `ZZ_${module.name}`,
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
             </>
