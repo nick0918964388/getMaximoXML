@@ -107,7 +107,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: parseResult.error.errors.map((e) => e.message).join(', '),
+          error: parseResult.error.issues.map((e) => e.message).join(', '),
         },
         { status: 400 }
       );

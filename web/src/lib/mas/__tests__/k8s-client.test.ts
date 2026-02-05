@@ -111,20 +111,18 @@ describe('MAS K8s Client', () => {
       const { createK8sClient, findMxinstPod } = await import('../k8s-client');
 
       const mockPodList = {
-        body: {
-          items: [
-            {
-              metadata: { name: 'mas-masw-manage-maxinst-7d8f9b-abc12', namespace: 'mas-inst1-manage' },
-              status: { phase: 'Running' },
-              spec: { containers: [{ name: 'maxinst' }] },
-            },
-            {
-              metadata: { name: 'some-other-pod-xyz', namespace: 'mas-inst1-manage' },
-              status: { phase: 'Running' },
-              spec: { containers: [{ name: 'container1' }] },
-            },
-          ],
-        },
+        items: [
+          {
+            metadata: { name: 'mas-masw-manage-maxinst-7d8f9b-abc12', namespace: 'mas-inst1-manage' },
+            status: { phase: 'Running' },
+            spec: { containers: [{ name: 'maxinst' }] },
+          },
+          {
+            metadata: { name: 'some-other-pod-xyz', namespace: 'mas-inst1-manage' },
+            status: { phase: 'Running' },
+            spec: { containers: [{ name: 'container1' }] },
+          },
+        ],
       };
 
       (mockCoreV1Api.listNamespacedPod as Mock).mockResolvedValue(mockPodList);
@@ -132,7 +130,7 @@ describe('MAS K8s Client', () => {
       const client = createK8sClient(testOptions);
       const pod = await findMxinstPod(client, testOptions.namespace, 'mas-masw-manage-maxinst-');
 
-      expect(mockCoreV1Api.listNamespacedPod).toHaveBeenCalledWith(testOptions.namespace);
+      expect(mockCoreV1Api.listNamespacedPod).toHaveBeenCalledWith({ namespace: testOptions.namespace });
       expect(pod).toEqual({
         name: 'mas-masw-manage-maxinst-7d8f9b-abc12',
         namespace: 'mas-inst1-manage',
@@ -145,15 +143,13 @@ describe('MAS K8s Client', () => {
       const { createK8sClient, findMxinstPod } = await import('../k8s-client');
 
       const mockPodList = {
-        body: {
-          items: [
-            {
-              metadata: { name: 'mas-masw-manage-maxinst-7d8f9b-abc12', namespace: 'mas-inst1-manage' },
-              status: { phase: 'Pending' }, // Not running
-              spec: { containers: [{ name: 'maxinst' }] },
-            },
-          ],
-        },
+        items: [
+          {
+            metadata: { name: 'mas-masw-manage-maxinst-7d8f9b-abc12', namespace: 'mas-inst1-manage' },
+            status: { phase: 'Pending' }, // Not running
+            spec: { containers: [{ name: 'maxinst' }] },
+          },
+        ],
       };
 
       (mockCoreV1Api.listNamespacedPod as Mock).mockResolvedValue(mockPodList);
@@ -167,7 +163,7 @@ describe('MAS K8s Client', () => {
     it('should throw error if namespace has no pods', async () => {
       const { createK8sClient, findMxinstPod } = await import('../k8s-client');
 
-      const mockPodList = { body: { items: [] } };
+      const mockPodList = { items: [] };
       (mockCoreV1Api.listNamespacedPod as Mock).mockResolvedValue(mockPodList);
 
       const client = createK8sClient(testOptions);
@@ -348,15 +344,13 @@ describe('MAS K8s Client', () => {
       const { createK8sClient, testConnection } = await import('../k8s-client');
 
       const mockPodList = {
-        body: {
-          items: [
-            {
-              metadata: { name: 'mas-masw-manage-maxinst-abc123', namespace: 'mas-inst1-manage' },
-              status: { phase: 'Running' },
-              spec: { containers: [{ name: 'maxinst' }] },
-            },
-          ],
-        },
+        items: [
+          {
+            metadata: { name: 'mas-masw-manage-maxinst-abc123', namespace: 'mas-inst1-manage' },
+            status: { phase: 'Running' },
+            spec: { containers: [{ name: 'maxinst' }] },
+          },
+        ],
       };
 
       (mockCoreV1Api.listNamespacedPod as Mock).mockResolvedValue(mockPodList);
@@ -384,7 +378,7 @@ describe('MAS K8s Client', () => {
     it('should return failure when no mxinst pod is found', async () => {
       const { createK8sClient, testConnection } = await import('../k8s-client');
 
-      const mockPodList = { body: { items: [] } };
+      const mockPodList = { items: [] };
       (mockCoreV1Api.listNamespacedPod as Mock).mockResolvedValue(mockPodList);
 
       const client = createK8sClient(testOptions);

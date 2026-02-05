@@ -76,8 +76,8 @@ export async function findMxinstPod(
   namespace: string,
   podPrefix: string
 ): Promise<MasPodInfo> {
-  const response = await client.coreApi.listNamespacedPod(namespace);
-  const pods = response.body.items;
+  const response = await client.coreApi.listNamespacedPod({ namespace });
+  const pods = response.items;
 
   const mxinstPod = pods.find(
     (pod) =>
