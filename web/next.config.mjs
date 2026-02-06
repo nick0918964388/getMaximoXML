@@ -2,13 +2,13 @@
 const nextConfig = {
   // Externalize sql.js to prevent bundling issues with WebAssembly
   experimental: {
-    serverComponentsExternalPackages: ['sql.js'],
+    serverComponentsExternalPackages: ['sql.js', '@kubernetes/client-node'],
   },
 
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Mark sql.js as external to prevent bundling issues
-      config.externals = [...(config.externals || []), 'sql.js'];
+      // Mark packages as external to prevent bundling issues
+      config.externals = [...(config.externals || []), 'sql.js', '@kubernetes/client-node'];
     }
     return config;
   },
