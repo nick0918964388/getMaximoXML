@@ -23,3 +23,6 @@ coverage/
 out/
 
 *:Zone.Identifier
+
+# Spec files
+spec/xml/

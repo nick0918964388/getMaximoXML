@@ -1,0 +1,7 @@
+{
+  "ocpClusterUrl": "https://api.ocp.mas4dev.xyz:6443",
+  "namespace": "mas-mas-manage",
+  "podPrefix": "mas-masw-manage-maxinst-",
+  "dbcTargetPath": "/opt/IBM/SMP/maximo/tools/maximo/en/script/",
+  "encryptedToken": "jUp19FK4PqAtALICZ5xpG9M3WbG8nVT5tGiadsyThXGIleytWebi5FrBMye41r4NT049uYoU3UsFGeBdfm7K5RKehX3jDh9GA+KnBLoq"
+}

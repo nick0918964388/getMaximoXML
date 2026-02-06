@@ -4,12 +4,29 @@
  */
 
 import * as k8s from '@kubernetes/client-node';
-import type { Writable } from 'stream';
+import { Writable } from 'stream';
 import type {
   MasK8sConnectionOptions,
   MasPodInfo,
   MasTestConnectionResult,
 } from './types';
+
+/**
+ * Create a proper Writable stream that collects data
+ */
+function createCollectorStream(
+  collector: string[],
+  onData?: (data: string) => void
+): Writable {
+  return new Writable({
+    write(chunk: Buffer | string, _encoding, callback) {
+      const str = chunk.toString();
+      collector.push(str);
+      if (onData) onData(str);
+      callback();
+    },
+  });
+}
 
 /**
  * K8s client wrapper with configuration
@@ -147,19 +164,8 @@ export async function copyContentToPod(
     const stdout: string[] = [];
     const stderr: string[] = [];
 
-    const stdoutStream: Writable = {
-      write: (data: string | Buffer) => {
-        stdout.push(data.toString());
-        return true;
-      },
-    } as Writable;
-
-    const stderrStream: Writable = {
-      write: (data: string | Buffer) => {
-        stderr.push(data.toString());
-        return true;
-      },
-    } as Writable;
+    const stdoutStream = createCollectorStream(stdout);
+    const stderrStream = createCollectorStream(stderr);
 
     exec
       .exec(
@@ -184,37 +190,53 @@ export async function copyContentToPod(
 }
 
 /**
+ * Exec options
+ */
+export interface ExecOptions {
+  /** Timeout in milliseconds (default: 300000 = 5 minutes) */
+  timeout?: number;
+}
+
+/** Default exec timeout: 5 minutes */
+const DEFAULT_EXEC_TIMEOUT = 300000;
+
+/**
  * Execute a command in a pod and stream output
  */
 export async function execInPod(
   client: MasK8sClient,
   podInfo: MasPodInfo,
   command: string[],
-  onOutput: (output: string) => void
+  onOutput: (output: string) => void,
+  options?: ExecOptions
 ): Promise<ExecResult> {
   const exec = new k8s.Exec(client.kubeConfig);
+  const timeout = options?.timeout ?? DEFAULT_EXEC_TIMEOUT;
 
   return new Promise((resolve) => {
     const stdout: string[] = [];
     const stderr: string[] = [];
+    let isResolved = false;
+    let timeoutId: NodeJS.Timeout | null = null;
 
-    const stdoutStream: Writable = {
-      write: (data: string | Buffer) => {
-        const str = data.toString();
-        stdout.push(str);
-        onOutput(str);
-        return true;
-      },
-    } as Writable;
+    const resolveOnce = (result: ExecResult) => {
+      if (isResolved) return;
+      isResolved = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      resolve(result);
+    };
 
-    const stderrStream: Writable = {
-      write: (data: string | Buffer) => {
-        const str = data.toString();
-        stderr.push(str);
-        onOutput(str);
-        return true;
-      },
-    } as Writable;
+    // Set timeout
+    timeoutId = setTimeout(() => {
+      resolveOnce({
+        success: false,
+        output: stdout.join(''),
+        error: `Command timed out after ${timeout / 1000} seconds`,
+      });
+    }, timeout);
+
+    const stdoutStream = createCollectorStream(stdout, onOutput);
+    const stderrStream = createCollectorStream(stderr, onOutput);
 
     exec
       .exec(
@@ -228,12 +250,12 @@ export async function execInPod(
         false,
         (status) => {
           if (status.status === 'Success') {
-            resolve({
+            resolveOnce({
               success: true,
               output: stdout.join(''),
             });
           } else {
-            resolve({
+            resolveOnce({
               success: false,
               output: stdout.join(''),
               error: stderr.join('') || status.message || 'Command execution failed',
@@ -242,7 +264,7 @@ export async function execInPod(
         }
       )
       .catch((error) => {
-        resolve({
+        resolveOnce({
           success: false,
           output: stdout.join(''),
           error: error.message || 'Failed to execute command',
@@ -279,20 +301,34 @@ export async function testConnection(
 
 /**
  * Execute runscriptfile.sh with the DBC file
+ * @param client K8s client
+ * @param podInfo Pod information
+ * @param dbcFilename DBC filename (e.g., "myfile.dbc")
+ * @param dbcUploadPath Path where the DBC file was uploaded (not used in command, just for reference)
+ * @param dbcScriptPath Path where runscriptfile.sh is located (e.g., "/opt/IBM/SMP/maximo/tools/maximo/internal")
+ * @param onOutput Callback for output streaming
+ * @param options Execution options (timeout, etc.)
  */
 export async function runDbcScript(
   client: MasK8sClient,
   podInfo: MasPodInfo,
   dbcFilename: string,
-  dbcBasePath: string,
-  onOutput: (output: string) => void
+  _dbcUploadPath: string,
+  dbcScriptPath: string,
+  onOutput: (output: string) => void,
+  options?: ExecOptions
 ): Promise<ExecResult> {
-  // Change to the DBC tools directory and run the script
+  // Remove .dbc extension from filename
+  // e.g., "myfile.dbc" -> "myfile"
+  const scriptName = dbcFilename.replace(/\.dbc$/i, '');
+
+  // Change to the script directory and run runscriptfile.sh
+  // Syntax: ./runscriptfile.sh -f<scriptname> (no path, no .dbc extension)
   const command = [
     'sh',
     '-c',
-    `cd ${dbcBasePath} && ./runscriptfile.sh -f${dbcFilename}`,
+    `cd ${dbcScriptPath} && ./runscriptfile.sh -f${scriptName}`,
   ];
 
-  return execInPod(client, podInfo, command, onOutput);
+  return execInPod(client, podInfo, command, onOutput, options);
 }

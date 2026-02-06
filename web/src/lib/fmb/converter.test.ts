@@ -12,8 +12,8 @@ describe('mapItemType', () => {
   it('should map PUSH_BUTTON to pushbutton', () => {
     expect(mapItemType('PUSH_BUTTON')).toBe('pushbutton');
   });
-  it('should map DISPLAY_ITEM to statictext', () => {
-    expect(mapItemType('DISPLAY_ITEM')).toBe('statictext');
+  it('should map DISPLAY_ITEM to textbox', () => {
+    expect(mapItemType('DISPLAY_ITEM')).toBe('textbox');
   });
   it('should map LIST_ITEM to combobox', () => {
     expect(mapItemType('LIST_ITEM')).toBe('combobox');
@@ -641,6 +641,45 @@ describe('convertFmbToMaximo', () => {
     // DEPT_NAME should NOT appear as separate field (merged into multiparttextbox)
     const deptNameField = result.fields.find((f) => f.fieldName === 'DEPT_NAME' && f.area !== 'list');
     expect(deptNameField).toBeUndefined();
+  });
+
+  it('should convert standalone DISPLAY_ITEM to textbox with readonly inputMode', () => {
+    const moduleWithDisplayItem: FmbModule = {
+      name: 'TESTFORM',
+      blocks: [
+        {
+          name: 'B1PCS1005',
+          singleRecord: true,
+          queryDataSource: 'PCS1005',
+          items: [
+            // Standalone DISPLAY_ITEM (not paired with TEXT_ITEM) should become textbox with readonly
+            { name: 'FORM_TITLE', itemType: 'DISPLAY_ITEM', prompt: 'Form Title', canvas: 'CANVAS_BODY', attributes: {} },
+            // Another standalone DISPLAY_ITEM
+            { name: 'STATUS_DESC', itemType: 'DISPLAY_ITEM', prompt: 'Status Description', canvas: 'CANVAS_BODY', attributes: {} },
+          ],
+          triggers: [],
+          attributes: {},
+        },
+      ],
+      canvases: [],
+      lovs: [],
+      triggers: [],
+      attributes: {},
+    };
+
+    const result = convertFmbToMaximo(moduleWithDisplayItem);
+
+    // FORM_TITLE should be textbox with inputMode=readonly
+    const formTitle = result.fields.find((f) => f.fieldName === 'FORM_TITLE' && f.area !== 'list');
+    expect(formTitle).toBeDefined();
+    expect(formTitle?.type).toBe('textbox');
+    expect(formTitle?.inputMode).toBe('readonly');
+
+    // STATUS_DESC should also be textbox with inputMode=readonly
+    const statusDesc = result.fields.find((f) => f.fieldName === 'STATUS_DESC' && f.area !== 'list');
+    expect(statusDesc).toBeDefined();
+    expect(statusDesc?.type).toBe('textbox');
+    expect(statusDesc?.inputMode).toBe('readonly');
   });
 
   it('should convert LIST_ITEM to combobox', () => {

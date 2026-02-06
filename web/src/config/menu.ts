@@ -1,4 +1,4 @@
-import { LucideIcon, FileCode, FileSearch } from 'lucide-react';
+import { LucideIcon, FileCode, FileSearch, Database } from 'lucide-react';
 
 /**
  * Tool configuration interface
@@ -59,6 +59,14 @@ export const menuConfig: MenuConfig = {
       description: '解析 Oracle Forms XML 並轉換為 Maximo XML',
       icon: FileSearch,
       path: '/tools/fmb-converter',
+      enabled: true,
+    },
+    {
+      id: 'dbc-builder',
+      name: 'DBC 建構器',
+      description: '互動式建構 Maximo DBC 資料庫配置腳本',
+      icon: Database,
+      path: '/tools/dbc-builder',
       enabled: true,
     },
   ],

@@ -100,7 +100,7 @@ describe('MasConfigDialog', () => {
       });
     });
 
-    it('should require token when not configured', async () => {
+    it('should require token when using token auth method', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -111,6 +111,7 @@ describe('MasConfigDialog', () => {
             podPrefix: 'mas-masw-manage-maxinst-',
             dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
             encryptedToken: '',
+            hasEnvCredentials: false,
           },
         }),
       });
@@ -118,8 +119,12 @@ describe('MasConfigDialog', () => {
       render(<MasConfigDialog {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Token/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/OCP Cluster URL/i)).toBeInTheDocument();
       });
+
+      // Switch to Token auth method
+      const tokenTab = screen.getByRole('tab', { name: /Token/i });
+      await userEvent.click(tokenTab);
 
       // Fill in URL but not token
       const urlInput = screen.getByLabelText(/OCP Cluster URL/i);
@@ -137,7 +142,7 @@ describe('MasConfigDialog', () => {
   });
 
   describe('form submission', () => {
-    it('should save configuration successfully', async () => {
+    it('should save configuration with token auth successfully', async () => {
       // First call for loading config
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -149,6 +154,7 @@ describe('MasConfigDialog', () => {
             podPrefix: 'mas-masw-manage-maxinst-',
             dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
             encryptedToken: '',
+            hasEnvCredentials: false,
           },
         }),
       });
@@ -168,12 +174,16 @@ describe('MasConfigDialog', () => {
         expect(screen.getByLabelText(/OCP Cluster URL/i)).toBeInTheDocument();
       });
 
+      // Switch to Token auth method
+      const tokenTab = screen.getByRole('tab', { name: /Token/i });
+      await userEvent.click(tokenTab);
+
       // Fill in form
       const urlInput = screen.getByLabelText(/OCP Cluster URL/i);
       await userEvent.clear(urlInput);
       await userEvent.type(urlInput, 'https://api.ocp.test.com:6443');
 
-      const tokenInput = screen.getByLabelText(/Token/i);
+      const tokenInput = screen.getByLabelText(/Service Account Token/i);
       await userEvent.type(tokenInput, 'test-token-abc123');
 
       // Submit form
@@ -191,7 +201,8 @@ describe('MasConfigDialog', () => {
       expect(defaultProps.onConfigSaved).toHaveBeenCalled();
     });
 
-    it('should show error on save failure', async () => {
+    it('should save configuration with password auth successfully', async () => {
+      // First call for loading config
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -202,6 +213,64 @@ describe('MasConfigDialog', () => {
             podPrefix: 'mas-masw-manage-maxinst-',
             dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
             encryptedToken: '',
+            hasEnvCredentials: false,
+          },
+        }),
+      });
+
+      // Second call for login
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: { message: 'Login successful' },
+        }),
+      });
+
+      render(<MasConfigDialog {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/OCP Cluster URL/i)).toBeInTheDocument();
+      });
+
+      // Fill in form (password auth is default)
+      const urlInput = screen.getByLabelText(/OCP Cluster URL/i);
+      await userEvent.clear(urlInput);
+      await userEvent.type(urlInput, 'https://api.ocp.test.com:6443');
+
+      const usernameInput = screen.getByLabelText(/OCP 帳號/i);
+      await userEvent.type(usernameInput, 'testuser');
+
+      const passwordInput = screen.getByLabelText(/OCP 密碼/i);
+      await userEvent.type(passwordInput, 'testpass');
+
+      // Submit form
+      const saveButton = screen.getByRole('button', { name: /儲存/i });
+      await userEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/mas/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: expect.stringContaining('testuser'),
+        });
+      });
+
+      expect(defaultProps.onConfigSaved).toHaveBeenCalled();
+    });
+
+    it('should show error on save failure with token auth', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            ocpClusterUrl: '',
+            namespace: 'mas-inst1-manage',
+            podPrefix: 'mas-masw-manage-maxinst-',
+            dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
+            encryptedToken: '',
+            hasEnvCredentials: false,
           },
         }),
       });
@@ -220,11 +289,15 @@ describe('MasConfigDialog', () => {
         expect(screen.getByLabelText(/OCP Cluster URL/i)).toBeInTheDocument();
       });
 
+      // Switch to Token auth method
+      const tokenTab = screen.getByRole('tab', { name: /Token/i });
+      await userEvent.click(tokenTab);
+
       const urlInput = screen.getByLabelText(/OCP Cluster URL/i);
       await userEvent.clear(urlInput);
       await userEvent.type(urlInput, 'https://api.ocp.test.com:6443');
 
-      const tokenInput = screen.getByLabelText(/Token/i);
+      const tokenInput = screen.getByLabelText(/Service Account Token/i);
       await userEvent.type(tokenInput, 'test-token');
 
       const saveButton = screen.getByRole('button', { name: /儲存/i });

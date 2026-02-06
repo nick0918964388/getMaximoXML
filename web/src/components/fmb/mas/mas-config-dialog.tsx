@@ -13,14 +13,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Loader2,
   CheckCircle2,
   XCircle,
   Settings,
   Plug,
+  Key,
+  User,
 } from 'lucide-react';
 import type { MasApiResponse, MasTestConnectionResult } from '@/lib/mas/types';
+
+type AuthMethod = 'token' | 'password';
 
 interface MasConfigDialogProps {
   open: boolean;
@@ -32,6 +37,8 @@ interface FormData {
   ocpClusterUrl: string;
   namespace: string;
   token: string;
+  username: string;
+  password: string;
   podPrefix: string;
   dbcTargetPath: string;
 }
@@ -40,6 +47,8 @@ interface FormErrors {
   ocpClusterUrl?: string;
   namespace?: string;
   token?: string;
+  username?: string;
+  password?: string;
   podPrefix?: string;
   dbcTargetPath?: string;
 }
@@ -49,10 +58,13 @@ export function MasConfigDialog({
   onOpenChange,
   onConfigSaved,
 }: MasConfigDialogProps) {
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('password');
   const [formData, setFormData] = useState<FormData>({
     ocpClusterUrl: '',
     namespace: 'mas-inst1-manage',
     token: '',
+    username: '',
+    password: '',
     podPrefix: 'mas-masw-manage-maxinst-',
     dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
   });
@@ -63,6 +75,7 @@ export function MasConfigDialog({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<MasTestConnectionResult | null>(null);
   const [hasExistingToken, setHasExistingToken] = useState(false);
+  const [hasEnvCredentials, setHasEnvCredentials] = useState(false);
 
   // Load existing configuration when dialog opens
   useEffect(() => {
@@ -84,17 +97,26 @@ export function MasConfigDialog({
         podPrefix: string;
         dbcTargetPath: string;
         encryptedToken: string;
+        hasEncryptionKey?: boolean;
+        hasEnvCredentials?: boolean;
       }> = await response.json();
 
       if (data.success && data.data) {
-        setFormData({
-          ocpClusterUrl: data.data.ocpClusterUrl || '',
-          namespace: data.data.namespace || 'mas-inst1-manage',
+        setFormData((prev) => ({
+          ...prev,
+          ocpClusterUrl: data.data!.ocpClusterUrl || '',
+          namespace: data.data!.namespace || 'mas-inst1-manage',
           token: '', // Don't show encrypted token
-          podPrefix: data.data.podPrefix || 'mas-masw-manage-maxinst-',
-          dbcTargetPath: data.data.dbcTargetPath || '/opt/IBM/SMP/maximo/tools/maximo/dbc',
-        });
+          podPrefix: data.data!.podPrefix || 'mas-masw-manage-maxinst-',
+          dbcTargetPath: data.data!.dbcTargetPath || '/opt/IBM/SMP/maximo/tools/maximo/dbc',
+        }));
         setHasExistingToken(data.data.encryptedToken === '***configured***');
+        setHasEnvCredentials(data.data.hasEnvCredentials ?? false);
+
+        // Auto-select password method if env credentials are configured
+        if (data.data.hasEnvCredentials) {
+          setAuthMethod('password');
+        }
       }
     } catch {
       setSaveError('Failed to load configuration');
@@ -116,9 +138,22 @@ export function MasConfigDialog({
       newErrors.namespace = 'Namespace is required';
     }
 
-    // Token is required if not already configured
-    if (!hasExistingToken && !formData.token) {
-      newErrors.token = 'Token is required';
+    // Validate based on auth method
+    if (authMethod === 'token') {
+      // Token is required if not already configured
+      if (!hasExistingToken && !formData.token) {
+        newErrors.token = 'Token is required';
+      }
+    } else {
+      // Password auth - username/password required if not using env credentials
+      if (!hasEnvCredentials) {
+        if (!formData.username) {
+          newErrors.username = 'Username is required';
+        }
+        if (!formData.password) {
+          newErrors.password = 'Password is required';
+        }
+      }
     }
 
     if (!formData.podPrefix) {
@@ -142,58 +177,73 @@ export function MasConfigDialog({
     setSaveError(null);
 
     try {
-      const payload = {
-        ocpClusterUrl: formData.ocpClusterUrl,
-        namespace: formData.namespace,
-        token: formData.token || '__KEEP_EXISTING__', // Special value to keep existing token
-        podPrefix: formData.podPrefix,
-        dbcTargetPath: formData.dbcTargetPath,
-      };
-
-      // If token is empty but we have existing token, don't send the payload
-      if (!formData.token && hasExistingToken) {
-        // Don't update token - but we need to send something
-        // The API should handle keeping the existing token
-        payload.token = '__KEEP_EXISTING__';
-      }
-
-      // Actually, for simplicity, require new token if user is changing config
-      if (!formData.token && !hasExistingToken) {
-        setErrors({ ...errors, token: 'Token is required' });
-        setIsSaving(false);
-        return;
-      }
-
-      // If we have existing token and no new one, just update other fields
-      if (!formData.token && hasExistingToken) {
-        // For now, require user to re-enter token if they want to change other settings
-        // This is more secure
-        setErrors({ ...errors, token: 'Please re-enter your token to update configuration' });
-        setIsSaving(false);
-        return;
-      }
-
-      const response = await fetch('/api/mas/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (authMethod === 'password') {
+        // Use login API with username/password
+        const loginPayload: Record<string, string> = {
           ocpClusterUrl: formData.ocpClusterUrl,
           namespace: formData.namespace,
-          token: formData.token,
           podPrefix: formData.podPrefix,
           dbcTargetPath: formData.dbcTargetPath,
-        }),
-      });
+        };
 
-      const data: MasApiResponse<{ message: string }> = await response.json();
+        // If env credentials are configured, we can use empty username/password
+        // The API will use env vars
+        if (hasEnvCredentials && !formData.username && !formData.password) {
+          loginPayload.username = '';
+          loginPayload.password = '';
+        } else {
+          loginPayload.username = formData.username;
+          loginPayload.password = formData.password;
+        }
 
-      if (!response.ok || !data.success) {
-        setSaveError(data.error || 'Failed to save configuration');
-        return;
+        const response = await fetch('/api/mas/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginPayload),
+        });
+
+        const data: MasApiResponse<{ message: string }> = await response.json();
+
+        if (!response.ok || !data.success) {
+          setSaveError(data.error || 'Login failed');
+          return;
+        }
+      } else {
+        // Use token API
+        if (!formData.token && !hasExistingToken) {
+          setErrors({ ...errors, token: 'Token is required' });
+          setIsSaving(false);
+          return;
+        }
+
+        if (!formData.token && hasExistingToken) {
+          setErrors({ ...errors, token: 'Please re-enter your token to update configuration' });
+          setIsSaving(false);
+          return;
+        }
+
+        const response = await fetch('/api/mas/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ocpClusterUrl: formData.ocpClusterUrl,
+            namespace: formData.namespace,
+            token: formData.token,
+            podPrefix: formData.podPrefix,
+            dbcTargetPath: formData.dbcTargetPath,
+          }),
+        });
+
+        const data: MasApiResponse<{ message: string }> = await response.json();
+
+        if (!response.ok || !data.success) {
+          setSaveError(data.error || 'Failed to save configuration');
+          return;
+        }
       }
 
       setHasExistingToken(true);
-      setFormData((prev) => ({ ...prev, token: '' })); // Clear token from form
+      setFormData((prev) => ({ ...prev, token: '', password: '' })); // Clear sensitive data
       onConfigSaved?.();
       onOpenChange(false);
     } catch {
@@ -290,25 +340,83 @@ export function MasConfigDialog({
               )}
             </div>
 
-            {/* Service Account Token */}
+            {/* Authentication Method */}
             <div className="grid gap-2">
-              <Label htmlFor="token">
-                Service Account Token
-                {hasExistingToken && (
-                  <span className="ml-2 text-xs text-muted-foreground">(已設定)</span>
-                )}
-              </Label>
-              <Input
-                id="token"
-                type="password"
-                placeholder={hasExistingToken ? '輸入新 Token 以更新' : 'eyJhbGciOiJSUzI1NiIsImtpZCI6...'}
-                value={formData.token}
-                onChange={handleInputChange('token')}
-                className={errors.token ? 'border-destructive' : ''}
-              />
-              {errors.token && (
-                <p className="text-sm text-destructive">{errors.token}</p>
-              )}
+              <Label>認證方式</Label>
+              <Tabs value={authMethod} onValueChange={(v) => setAuthMethod(v as AuthMethod)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="password" className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    帳號密碼
+                  </TabsTrigger>
+                  <TabsTrigger value="token" className="flex items-center gap-1">
+                    <Key className="h-4 w-4" />
+                    Token
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="password" className="mt-3 space-y-3">
+                  {hasEnvCredentials && (
+                    <Alert>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>
+                        已從環境變數讀取 OCP 帳號密碼，可直接儲存使用
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="grid gap-2">
+                    <Label htmlFor="username">OCP 帳號</Label>
+                    <Input
+                      id="username"
+                      placeholder={hasEnvCredentials ? '(使用環境變數)' : 'your-ocp-username'}
+                      value={formData.username}
+                      onChange={handleInputChange('username')}
+                      className={errors.username ? 'border-destructive' : ''}
+                      disabled={hasEnvCredentials}
+                    />
+                    {errors.username && (
+                      <p className="text-sm text-destructive">{errors.username}</p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">OCP 密碼</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder={hasEnvCredentials ? '(使用環境變數)' : 'your-ocp-password'}
+                      value={formData.password}
+                      onChange={handleInputChange('password')}
+                      className={errors.password ? 'border-destructive' : ''}
+                      disabled={hasEnvCredentials}
+                    />
+                    {errors.password && (
+                      <p className="text-sm text-destructive">{errors.password}</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="token" className="mt-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="token">
+                      Service Account Token
+                      {hasExistingToken && (
+                        <span className="ml-2 text-xs text-muted-foreground">(已設定)</span>
+                      )}
+                    </Label>
+                    <Input
+                      id="token"
+                      type="password"
+                      placeholder={hasExistingToken ? '輸入新 Token 以更新' : 'eyJhbGciOiJSUzI1NiIsImtpZCI6...'}
+                      value={formData.token}
+                      onChange={handleInputChange('token')}
+                      className={errors.token ? 'border-destructive' : ''}
+                    />
+                    {errors.token && (
+                      <p className="text-sm text-destructive">{errors.token}</p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Pod Prefix */}
@@ -372,6 +480,7 @@ export function MasConfigDialog({
             variant="outline"
             onClick={handleTestConnection}
             disabled={isTesting || !hasExistingToken}
+            title={!hasExistingToken ? '請先儲存設定後再測試連線' : ''}
           >
             {isTesting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

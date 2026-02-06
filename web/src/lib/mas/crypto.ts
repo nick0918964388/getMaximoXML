@@ -100,3 +100,11 @@ export function isEncrypted(data: string): boolean {
     return false;
   }
 }
+
+/**
+ * Check if the encryption key is configured
+ * @returns true if MAS_ENCRYPTION_KEY environment variable is set
+ */
+export function hasEncryptionKey(): boolean {
+  return !!process.env.MAS_ENCRYPTION_KEY;
+}

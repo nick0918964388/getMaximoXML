@@ -71,7 +71,7 @@ const ITEM_TYPE_MAP: Record<string, FieldType> = {
   TEXT_ITEM: 'textbox',
   CHECK_BOX: 'checkbox',
   PUSH_BUTTON: 'pushbutton',
-  DISPLAY_ITEM: 'statictext',
+  DISPLAY_ITEM: 'textbox',
   LIST_ITEM: 'combobox',
 };
 
@@ -191,13 +191,18 @@ export function convertFmbToMaximo(module: FmbModule): FmbConversionResult {
       const descrAttribute = displayItemMap.get(item.name);
       const fieldType: FieldType = descrAttribute ? 'multiparttextbox' : mapItemType(item.itemType);
 
+      // DISPLAY_ITEM should always be readonly
+      const inputMode = item.itemType === 'DISPLAY_ITEM'
+        ? 'readonly'
+        : resolveInputMode(item.required, item.enabled);
+
       const field: SAFieldDefinition = {
         ...DEFAULT_FIELD,
         fieldName: item.name,
         label,
         type: fieldType,
         area,
-        inputMode: resolveInputMode(item.required, item.enabled),
+        inputMode,
         relationship: area === 'detail' ? (block.queryDataSource ?? '') : '',
         // For header items, tabPage becomes tabName (creates main tabs)
         // For detail items, tabPage becomes subTabName (creates sub-tabs within a detail area)

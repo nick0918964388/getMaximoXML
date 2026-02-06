@@ -10,10 +10,10 @@ import path from 'path';
 import {
   MasConfig,
   MasConfigInputSchema,
-  DEFAULT_MAS_CONFIG,
   MasApiResponse,
 } from '@/lib/mas/types';
-import { encrypt, isEncrypted } from '@/lib/mas/crypto';
+import { encrypt, isEncrypted, hasEncryptionKey } from '@/lib/mas/crypto';
+import { getMasEnvConfig, hasOcpCredentials } from '@/lib/mas/env';
 
 // Config file location (in the project root, outside of public folders)
 const CONFIG_DIR = path.join(process.cwd(), '.mas-config');
@@ -51,34 +51,39 @@ async function writeConfig(config: MasConfig): Promise<void> {
 }
 
 /**
+ * Extended response with additional metadata
+ */
+interface ConfigResponse extends Partial<MasConfig> {
+  hasEncryptionKey?: boolean;
+  hasEnvCredentials?: boolean;
+}
+
+/**
  * GET /api/mas/config
  * Returns the current configuration (with token masked)
+ * Defaults are read from environment variables
  */
-export async function GET(): Promise<NextResponse<MasApiResponse<Partial<MasConfig>>>> {
+export async function GET(): Promise<NextResponse<MasApiResponse<ConfigResponse>>> {
   try {
     const config = await readConfig();
+    const envConfig = getMasEnvConfig();
 
-    if (!config) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...DEFAULT_MAS_CONFIG,
-          encryptedToken: '',
-        },
-      });
-    }
+    // Merge stored config with environment defaults
+    const mergedConfig = {
+      ocpClusterUrl: config?.ocpClusterUrl || envConfig.ocpClusterUrl,
+      namespace: config?.namespace || envConfig.namespace,
+      podPrefix: config?.podPrefix || envConfig.podPrefix,
+      dbcTargetPath: config?.dbcTargetPath || envConfig.dbcTargetPath,
+      // Indicate if token is configured without exposing it
+      encryptedToken: config?.encryptedToken ? '***configured***' : '',
+      // Additional metadata for UI
+      hasEncryptionKey: hasEncryptionKey(),
+      hasEnvCredentials: hasOcpCredentials(),
+    };
 
-    // Return config but indicate if token is set (don't return actual token)
     return NextResponse.json({
       success: true,
-      data: {
-        ocpClusterUrl: config.ocpClusterUrl,
-        namespace: config.namespace,
-        podPrefix: config.podPrefix,
-        dbcTargetPath: config.dbcTargetPath,
-        // Indicate if token is configured without exposing it
-        encryptedToken: config.encryptedToken ? '***configured***' : '',
-      },
+      data: mergedConfig,
     });
   } catch (error) {
     return NextResponse.json(

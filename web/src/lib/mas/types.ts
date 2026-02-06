@@ -21,8 +21,12 @@ export interface MasConfig {
   encryptedToken: string;
   /** Pod name prefix to find mxinst pod, e.g., mas-masw-manage-maxinst- */
   podPrefix: string;
-  /** Target path in pod for DBC files, e.g., /opt/IBM/SMP/maximo/tools/maximo/dbc */
+  /** Target path in pod for DBC files (legacy, use dbcUploadPath) */
   dbcTargetPath: string;
+  /** DBC file upload path, e.g., /opt/IBM/SMP/maximo/tools/maximo/en/script */
+  dbcUploadPath?: string;
+  /** runscriptfile.sh execution path, e.g., /opt/IBM/SMP/maximo/tools/maximo/internal */
+  dbcScriptPath?: string;
 }
 
 /**
@@ -32,7 +36,9 @@ export const DEFAULT_MAS_CONFIG: Omit<MasConfig, 'encryptedToken'> = {
   ocpClusterUrl: '',
   namespace: 'mas-inst1-manage',
   podPrefix: 'mas-masw-manage-maxinst-',
-  dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
+  dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/en/script',
+  dbcUploadPath: '/opt/IBM/SMP/maximo/tools/maximo/en/script',
+  dbcScriptPath: '/opt/IBM/SMP/maximo/tools/maximo/internal',
 };
 
 /**

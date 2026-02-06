@@ -20,6 +20,7 @@ import {
   MasK8sClient,
 } from '@/lib/mas/k8s-client';
 import type { MasPodInfo } from '@/lib/mas/types';
+import { getMasEnvConfig } from '@/lib/mas/env';
 
 const CONFIG_FILE = path.join(process.cwd(), '.mas-config', 'config.json');
 
@@ -124,6 +125,12 @@ export async function POST(request: NextRequest): Promise<Response> {
 
       let client: MasK8sClient | null = null;
       let podInfo: MasPodInfo | null = null;
+      const envConfig = getMasEnvConfig();
+      const importTimeout = envConfig.importTimeout;
+
+      // Use new path config or fall back to legacy dbcTargetPath
+      const dbcUploadPath = config.dbcUploadPath || envConfig.dbcUploadPath || config.dbcTargetPath;
+      const dbcScriptPath = config.dbcScriptPath || envConfig.dbcScriptPath;
 
       try {
         // Step 1: Connecting
@@ -150,10 +157,10 @@ export async function POST(request: NextRequest): Promise<Response> {
         send('status', {
           status: 'uploading',
           podName: podInfo.name,
-          message: `Uploading ${dbcFilename} to ${config.dbcTargetPath}/...`,
+          message: `Uploading ${dbcFilename} to ${dbcUploadPath}/...`,
         });
 
-        const remotePath = `${config.dbcTargetPath}/${dbcFilename}`;
+        const remotePath = `${dbcUploadPath}/${dbcFilename}`;
         await copyContentToPod(client, podInfo, dbcContent, remotePath);
 
         send('status', {
@@ -162,21 +169,24 @@ export async function POST(request: NextRequest): Promise<Response> {
           message: `Uploaded ${dbcFilename} successfully`,
         });
 
-        // Step 4: Executing runscriptfile.sh
+        // Step 4: Executing runscriptfile.sh from script path
+        const timeoutMinutes = Math.round(importTimeout / 60000);
         send('status', {
           status: 'executing',
           podName: podInfo.name,
-          message: `Executing runscriptfile.sh -f${dbcFilename}...`,
+          message: `Executing runscriptfile.sh -f${dbcFilename}... (timeout: ${timeoutMinutes} min)`,
         });
 
         const result = await runDbcScript(
           client,
           podInfo,
           dbcFilename,
-          config.dbcTargetPath,
+          dbcUploadPath,
+          dbcScriptPath,
           (output) => {
             send('output', { message: output });
-          }
+          },
+          { timeout: importTimeout }
         );
 
         if (result.success) {
