@@ -17,6 +17,7 @@ import {
 import type { MasPodInfo } from '@/lib/mas/types';
 import { getMasEnvConfig } from '@/lib/mas/env';
 import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
+import { deriveMasStem } from '@/lib/mas/pod-manager-types';
 
 /**
  * Create SSE event string
@@ -101,17 +102,23 @@ export async function POST(request: NextRequest): Promise<Response> {
       const importTimeout = envConfig.importTimeout;
 
       // Use new path config or fall back to legacy dbcTargetPath
-      const dbcUploadPath = config.dbcUploadPath || envConfig.dbcUploadPath || config.dbcTargetPath;
+      // Strip trailing slash to avoid double-slash in paths
+      const dbcUploadPath = (config.dbcUploadPath || envConfig.dbcUploadPath || config.dbcTargetPath).replace(/\/+$/, '');
       const dbcScriptPath = config.dbcScriptPath || envConfig.dbcScriptPath;
+
+      // DBC import always targets the maxinst pod.
+      // Derive the stem from the user's podPrefix (e.g. "mas-masw-all" → "mas-masw-")
+      // then append "maxinst-" to get the correct prefix for findMxinstPod.
+      const mxinstPrefix = `${deriveMasStem(config.podPrefix)}maxinst-`;
 
       try {
         // Step 1: Connecting
         send('status', { status: 'connecting', message: 'Connected to OCP cluster' });
 
         // Step 2: Finding pod
-        send('status', { status: 'finding-pod', message: 'Finding mxinst pod...' });
+        send('status', { status: 'finding-pod', message: `Finding maxinst pod (prefix: ${mxinstPrefix})...` });
 
-        podInfo = await findMxinstPod(client, config.namespace, config.podPrefix);
+        podInfo = await findMxinstPod(client, config.namespace, mxinstPrefix);
         send('status', {
           status: 'finding-pod',
           podName: podInfo.name,

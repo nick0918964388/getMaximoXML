@@ -10,6 +10,7 @@ import {
 } from '@/lib/mas/types';
 import { testConnection } from '@/lib/mas/k8s-client';
 import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
+import { deriveMasStem } from '@/lib/mas/pod-manager-types';
 
 /**
  * POST /api/mas/test-connection
@@ -19,10 +20,13 @@ export async function POST(): Promise<NextResponse<MasApiResponse<MasTestConnect
   try {
     const { client, config } = await getAuthenticatedK8sClient();
 
+    // Test connection always targets the maxinst pod
+    const mxinstPrefix = `${deriveMasStem(config.podPrefix)}maxinst-`;
+
     const result = await testConnection(
       client,
       config.namespace,
-      config.podPrefix
+      mxinstPrefix
     );
 
     return NextResponse.json({
