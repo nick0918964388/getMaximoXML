@@ -208,36 +208,25 @@ describe('scaleDeployment', () => {
     expect(result.previous).toBe(2);
     expect(result.current).toBe(0);
 
-    // Should have patched annotation with merge patch options
+    // Should have patched annotation using JSON Patch format (no second arg)
     expect(client.appsApi.patchNamespacedDeployment).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'mas-masw-manage-all-deploy',
         namespace: 'mas-ns',
-        body: {
-          metadata: {
-            annotations: { [PREVIOUS_REPLICAS_ANNOTATION]: '2' },
-          },
-        },
-      }),
-      // Second arg: options with middleware to set Content-Type
-      expect.objectContaining({
-        middleware: expect.arrayContaining([
-          expect.objectContaining({ pre: expect.any(Function) }),
-        ]),
+        body: [
+          { op: 'add', path: '/metadata/annotations/mas-tools~1previous-replicas', value: '2' },
+        ],
       })
     );
 
-    // Should have scaled with merge patch options
+    // Should have scaled using JSON Patch format (no second arg)
     expect(client.appsApi.patchNamespacedDeploymentScale).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'mas-masw-manage-all-deploy',
         namespace: 'mas-ns',
-        body: { spec: { replicas: 0 } },
-      }),
-      expect.objectContaining({
-        middleware: expect.arrayContaining([
-          expect.objectContaining({ pre: expect.any(Function) }),
-        ]),
+        body: [
+          { op: 'replace', path: '/spec/replicas', value: 0 },
+        ],
       })
     );
   });
@@ -256,6 +245,15 @@ describe('scaleDeployment', () => {
 
     // Should NOT have patched annotations (not scaling to 0)
     expect(client.appsApi.patchNamespacedDeployment).not.toHaveBeenCalled();
+
+    // Should have used JSON Patch format
+    expect(client.appsApi.patchNamespacedDeploymentScale).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: [
+          { op: 'replace', path: '/spec/replicas', value: 3 },
+        ],
+      })
+    );
   });
 
   it('should reject non-MAS deployment names', async () => {
@@ -280,9 +278,10 @@ describe('scaleDeployment', () => {
     expect(client.appsApi.patchNamespacedDeploymentScale).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'mas-masw-manage-all',
-        body: { spec: { replicas: 0 } },
-      }),
-      expect.objectContaining({ middleware: expect.any(Array) })
+        body: [
+          { op: 'replace', path: '/spec/replicas', value: 0 },
+        ],
+      })
     );
   });
 

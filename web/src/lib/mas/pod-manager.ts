@@ -16,19 +16,12 @@ import {
 } from './pod-manager-types';
 
 /**
- * Middleware options to override Content-Type for PATCH operations.
- * @kubernetes/client-node v1.4.0 defaults to application/json-patch+json,
- * but we use strategic merge patch (partial object) format.
+ * Escape a JSON Pointer token (RFC 6901).
+ * '~' → '~0', '/' → '~1'
  */
-const MERGE_PATCH_OPTIONS = {
-  middleware: [{
-    pre: async (context: { setHeaderParam: (key: string, value: string) => void }) => {
-      context.setHeaderParam('Content-Type', 'application/strategic-merge-patch+json');
-      return context;
-    },
-    post: async (response: unknown) => response,
-  }],
-};
+function escapeJsonPointer(token: string): string {
+  return token.replace(/~/g, '~0').replace(/\//g, '~1');
+}
 
 // =============================================================================
 // Pod Operations
@@ -154,26 +147,26 @@ export async function scaleDeployment(
   const currentReplicas = deployment.spec?.replicas ?? 0;
 
   // When scaling to 0, save previous replicas in annotation
+  // Use JSON Patch format (array of ops) to match default Content-Type
   if (replicas === 0 && currentReplicas > 0) {
+    const annotationKey = escapeJsonPointer(PREVIOUS_REPLICAS_ANNOTATION);
     await client.appsApi.patchNamespacedDeployment({
       name,
       namespace,
-      body: {
-        metadata: {
-          annotations: {
-            [PREVIOUS_REPLICAS_ANNOTATION]: String(currentReplicas),
-          },
-        },
-      },
-    }, MERGE_PATCH_OPTIONS);
+      body: [
+        { op: 'add', path: '/metadata/annotations/' + annotationKey, value: String(currentReplicas) },
+      ],
+    });
   }
 
-  // Patch the scale
+  // Patch the scale using JSON Patch format
   await client.appsApi.patchNamespacedDeploymentScale({
     name,
     namespace,
-    body: { spec: { replicas } },
-  }, MERGE_PATCH_OPTIONS);
+    body: [
+      { op: 'replace', path: '/spec/replicas', value: replicas },
+    ],
+  });
 
   return { previous: currentReplicas, current: replicas };
 }
