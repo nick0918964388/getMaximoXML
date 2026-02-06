@@ -34,6 +34,7 @@ function createCollectorStream(
 export interface MasK8sClient {
   kubeConfig: k8s.KubeConfig;
   coreApi: k8s.CoreV1Api;
+  appsApi: k8s.AppsV1Api;
 }
 
 /**
@@ -77,10 +78,12 @@ export function createK8sClient(options: MasK8sConnectionOptions): MasK8sClient 
   });
 
   const coreApi = kc.makeApiClient(k8s.CoreV1Api);
+  const appsApi = kc.makeApiClient(k8s.AppsV1Api);
 
   return {
     kubeConfig: kc,
     coreApi,
+    appsApi,
   };
 }
 

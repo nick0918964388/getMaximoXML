@@ -27,6 +27,10 @@ export interface MasConfig {
   dbcUploadPath?: string;
   /** runscriptfile.sh execution path, e.g., /opt/IBM/SMP/maximo/tools/maximo/internal */
   dbcScriptPath?: string;
+  /** AES-256-GCM encrypted OCP username (for auto re-auth) */
+  encryptedUsername?: string;
+  /** AES-256-GCM encrypted OCP password (for auto re-auth) */
+  encryptedPassword?: string;
 }
 
 /**

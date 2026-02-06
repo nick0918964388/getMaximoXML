@@ -1,33 +1,87 @@
 /**
  * OCP Authentication Module
  * Handles username/password login to get OAuth token
+ *
+ * Uses Node.js https module directly to support self-signed certificates
+ * (rejectUnauthorized: false), since native fetch does not support
+ * custom agents.
  */
+
+import https from 'https';
+import http from 'http';
+import { URL } from 'url';
+
+/**
+ * Low-level HTTPS request helper that supports self-signed certs.
+ */
+function httpsRequest(
+  url: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    followRedirects?: boolean;
+  } = {}
+): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: string }> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const reqOptions: https.RequestOptions = {
+      hostname: parsed.hostname,
+      port: parsed.port || 443,
+      path: parsed.pathname + parsed.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      rejectUnauthorized: false,
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      // Handle redirects if not following
+      if (!options.followRedirects && res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        resolve({
+          statusCode: res.statusCode,
+          headers: res.headers,
+          body: '',
+        });
+        res.resume(); // drain response
+        return;
+      }
+
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode || 0,
+          headers: res.headers,
+          body: Buffer.concat(chunks).toString('utf-8'),
+        });
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
 
 /**
  * Login to OCP using username and password
  * Returns the OAuth access token
- *
- * @param clusterUrl OCP cluster URL (e.g., https://api.ocp.example.com:6443)
- * @param username OCP username
- * @param password OCP password
- * @returns OAuth access token
  */
 export async function loginToOcp(
   clusterUrl: string,
   username: string,
   password: string
 ): Promise<string> {
-  // OCP uses OAuth 2.0 with resource owner password credentials grant
-  // The OAuth server URL is typically at oauth-openshift.apps.<cluster>
-  // But we can also use the well-known oauth-authorization-server endpoint
-
   // First, discover the OAuth server URL
   const oauthServerUrl = await discoverOAuthServer(clusterUrl);
 
   // Request token using password grant
   const tokenUrl = `${oauthServerUrl}/oauth/token`;
 
-  const response = await fetch(tokenUrl, {
+  const response = await httpsRequest(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -37,18 +91,15 @@ export async function loginToOcp(
       grant_type: 'password',
       username,
       password,
-    }),
-    // Skip TLS verification for self-signed certs
-    // @ts-expect-error - Node.js fetch extension
-    agent: new (await import('https')).Agent({ rejectUnauthorized: false }),
+    }).toString(),
+    followRedirects: true,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OCP login failed: ${response.status} ${errorText}`);
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error(`OCP login failed: ${response.statusCode} ${response.body}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(response.body);
   return data.access_token;
 }
 
@@ -56,28 +107,22 @@ export async function loginToOcp(
  * Discover OAuth server URL from OCP cluster
  */
 async function discoverOAuthServer(clusterUrl: string): Promise<string> {
-  // The OAuth metadata is available at /.well-known/oauth-authorization-server
   const wellKnownUrl = `${clusterUrl}/.well-known/oauth-authorization-server`;
 
   try {
-    const response = await fetch(wellKnownUrl, {
-      headers: {
-        'Accept': 'application/json',
-      },
-      // Skip TLS verification for self-signed certs
-      // @ts-expect-error - Node.js fetch extension
-      agent: new (await import('https')).Agent({ rejectUnauthorized: false }),
+    const response = await httpsRequest(wellKnownUrl, {
+      headers: { 'Accept': 'application/json' },
+      followRedirects: true,
     });
 
-    if (response.ok) {
-      const data = await response.json();
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      const data = JSON.parse(response.body);
       return data.issuer || clusterUrl;
     }
   } catch {
     // Fallback: try to construct the OAuth URL from the cluster URL
   }
 
-  // Fallback: assume OAuth server is at the same host
   return clusterUrl;
 }
 
@@ -90,47 +135,47 @@ export async function getTokenViaRequestHeader(
   username: string,
   password: string
 ): Promise<string> {
-  // OCP's OAuth endpoint for password-based auth
-  // This simulates what 'oc login -u username -p password' does
-  const oauthUrl = `${clusterUrl}/oauth/authorize`;
+  // Discover the OAuth server URL first (it's usually on a different host)
+  const oauthServerUrl = await discoverOAuthServer(clusterUrl);
+  const oauthUrl = `${oauthServerUrl}/oauth/authorize`;
 
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: 'openshift-challenging-client',
   });
 
-  const response = await fetch(`${oauthUrl}?${params}`, {
+  const response = await httpsRequest(`${oauthUrl}?${params}`, {
     method: 'GET',
     headers: {
       'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
       'X-CSRF-Token': '1',
     },
-    redirect: 'manual', // Don't follow redirects
-    // Skip TLS verification for self-signed certs
-    // @ts-expect-error - Node.js fetch extension
-    agent: new (await import('https')).Agent({ rejectUnauthorized: false }),
+    followRedirects: false, // We need the redirect Location header
   });
 
   // OCP redirects to a URL with the token in the fragment
-  // e.g., https://api.ocp/oauth/token/implicit#access_token=xxx&...
-  const location = response.headers.get('location');
+  const location = response.headers['location'];
 
   if (!location) {
-    throw new Error('OCP login failed: No redirect location');
+    // If no redirect, check if it was an auth error
+    if (response.statusCode === 401) {
+      throw new Error('Invalid username or password');
+    }
+    throw new Error(`No redirect location (HTTP ${response.statusCode})`);
   }
 
   // Parse the access_token from the fragment
   const hashIndex = location.indexOf('#');
   if (hashIndex === -1) {
-    throw new Error('OCP login failed: Invalid redirect URL');
+    throw new Error('Invalid redirect URL (no token fragment)');
   }
 
   const fragment = location.substring(hashIndex + 1);
-  const params2 = new URLSearchParams(fragment);
-  const accessToken = params2.get('access_token');
+  const tokenParams = new URLSearchParams(fragment);
+  const accessToken = tokenParams.get('access_token');
 
   if (!accessToken) {
-    throw new Error('OCP login failed: No access token in response');
+    throw new Error('No access token in response');
   }
 
   return accessToken;

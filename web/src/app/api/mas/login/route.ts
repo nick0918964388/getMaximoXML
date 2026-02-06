@@ -122,13 +122,15 @@ export async function POST(
       encryptedToken = encrypt(token);
     }
 
-    // Save configuration
+    // Save configuration (including encrypted credentials for auto re-auth)
     const config: MasConfig = {
       ocpClusterUrl,
       namespace,
       podPrefix,
       dbcTargetPath,
       encryptedToken,
+      encryptedUsername: encrypt(username),
+      encryptedPassword: encrypt(password),
     };
 
     await writeConfig(config);

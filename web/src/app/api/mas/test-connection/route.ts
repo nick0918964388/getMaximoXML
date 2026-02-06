@@ -4,29 +4,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import {
-  MasConfig,
   MasApiResponse,
   MasTestConnectionResult,
 } from '@/lib/mas/types';
-import { decrypt } from '@/lib/mas/crypto';
-import { createK8sClient, testConnection } from '@/lib/mas/k8s-client';
-
-const CONFIG_FILE = path.join(process.cwd(), '.mas-config', 'config.json');
-
-/**
- * Read config from file
- */
-async function readConfig(): Promise<MasConfig | null> {
-  try {
-    const content = await fs.readFile(CONFIG_FILE, 'utf-8');
-    return JSON.parse(content) as MasConfig;
-  } catch {
-    return null;
-  }
-}
+import { testConnection } from '@/lib/mas/k8s-client';
+import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
 
 /**
  * POST /api/mas/test-connection
@@ -34,40 +17,7 @@ async function readConfig(): Promise<MasConfig | null> {
  */
 export async function POST(): Promise<NextResponse<MasApiResponse<MasTestConnectionResult>>> {
   try {
-    // Read configuration
-    const config = await readConfig();
-
-    if (!config || !config.encryptedToken) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'MAS configuration not found. Please configure the connection first.',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Decrypt the token
-    let token: string;
-    try {
-      token = decrypt(config.encryptedToken);
-    } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to decrypt token. The encryption key may have changed.',
-        },
-        { status: 500 }
-      );
-    }
-
-    // Create K8s client and test connection
-    const client = createK8sClient({
-      clusterUrl: config.ocpClusterUrl,
-      token,
-      namespace: config.namespace,
-      skipTLSVerify: true,
-    });
+    const { client, config } = await getAuthenticatedK8sClient();
 
     const result = await testConnection(
       client,
@@ -80,11 +30,23 @@ export async function POST(): Promise<NextResponse<MasApiResponse<MasTestConnect
       data: result,
       error: result.error,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    let message = 'Connection test failed';
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    const k8sError = error as { statusCode?: number; body?: unknown };
+    if (k8sError.statusCode) {
+      const body = typeof k8sError.body === 'object' && k8sError.body !== null
+        ? JSON.stringify(k8sError.body)
+        : String(k8sError.body ?? '');
+      message = `HTTP ${k8sError.statusCode}: ${message} ${body}`;
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Connection test failed',
+        error: message,
       },
       { status: 500 }
     );

@@ -31,6 +31,10 @@ interface MasConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfigSaved?: () => void;
+  /** Hide DBC-specific fields (target path). Default: false */
+  hideDbcFields?: boolean;
+  /** Override default pod prefix. Default: 'mas-masw-manage-maxinst-' */
+  defaultPodPrefix?: string;
 }
 
 interface FormData {
@@ -53,10 +57,15 @@ interface FormErrors {
   dbcTargetPath?: string;
 }
 
+const DEFAULT_POD_PREFIX = 'mas-masw-manage-maxinst-';
+const DEFAULT_DBC_PATH = '/opt/IBM/SMP/maximo/tools/maximo/dbc';
+
 export function MasConfigDialog({
   open,
   onOpenChange,
   onConfigSaved,
+  hideDbcFields = false,
+  defaultPodPrefix = DEFAULT_POD_PREFIX,
 }: MasConfigDialogProps) {
   const [authMethod, setAuthMethod] = useState<AuthMethod>('password');
   const [formData, setFormData] = useState<FormData>({
@@ -65,8 +74,8 @@ export function MasConfigDialog({
     token: '',
     username: '',
     password: '',
-    podPrefix: 'mas-masw-manage-maxinst-',
-    dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/dbc',
+    podPrefix: defaultPodPrefix,
+    dbcTargetPath: DEFAULT_DBC_PATH,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -107,8 +116,10 @@ export function MasConfigDialog({
           ocpClusterUrl: data.data!.ocpClusterUrl || '',
           namespace: data.data!.namespace || 'mas-inst1-manage',
           token: '', // Don't show encrypted token
-          podPrefix: data.data!.podPrefix || 'mas-masw-manage-maxinst-',
-          dbcTargetPath: data.data!.dbcTargetPath || '/opt/IBM/SMP/maximo/tools/maximo/dbc',
+          podPrefix: defaultPodPrefix !== DEFAULT_POD_PREFIX
+            ? defaultPodPrefix
+            : (data.data!.podPrefix || defaultPodPrefix),
+          dbcTargetPath: data.data!.dbcTargetPath || DEFAULT_DBC_PATH,
         }));
         setHasExistingToken(data.data.encryptedToken === '***configured***');
         setHasEnvCredentials(data.data.hasEnvCredentials ?? false);
@@ -160,10 +171,12 @@ export function MasConfigDialog({
       newErrors.podPrefix = 'Pod prefix is required';
     }
 
-    if (!formData.dbcTargetPath) {
-      newErrors.dbcTargetPath = 'DBC target path is required';
-    } else if (!formData.dbcTargetPath.startsWith('/')) {
-      newErrors.dbcTargetPath = 'Path must be absolute (start with /)';
+    if (!hideDbcFields) {
+      if (!formData.dbcTargetPath) {
+        newErrors.dbcTargetPath = 'DBC target path is required';
+      } else if (!formData.dbcTargetPath.startsWith('/')) {
+        newErrors.dbcTargetPath = 'Path must be absolute (start with /)';
+      }
     }
 
     setErrors(newErrors);
@@ -435,19 +448,21 @@ export function MasConfigDialog({
             </div>
 
             {/* DBC Target Path */}
-            <div className="grid gap-2">
-              <Label htmlFor="dbcTargetPath">DBC 目標路徑</Label>
-              <Input
-                id="dbcTargetPath"
-                placeholder="/opt/IBM/SMP/maximo/tools/maximo/dbc"
-                value={formData.dbcTargetPath}
-                onChange={handleInputChange('dbcTargetPath')}
-                className={errors.dbcTargetPath ? 'border-destructive' : ''}
-              />
-              {errors.dbcTargetPath && (
-                <p className="text-sm text-destructive">{errors.dbcTargetPath}</p>
-              )}
-            </div>
+            {!hideDbcFields && (
+              <div className="grid gap-2">
+                <Label htmlFor="dbcTargetPath">DBC 目標路徑</Label>
+                <Input
+                  id="dbcTargetPath"
+                  placeholder="/opt/IBM/SMP/maximo/tools/maximo/dbc"
+                  value={formData.dbcTargetPath}
+                  onChange={handleInputChange('dbcTargetPath')}
+                  className={errors.dbcTargetPath ? 'border-destructive' : ''}
+                />
+                {errors.dbcTargetPath && (
+                  <p className="text-sm text-destructive">{errors.dbcTargetPath}</p>
+                )}
+              </div>
+            )}
 
             {/* Error Alert */}
             {saveError && (

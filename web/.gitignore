@@ -37,3 +37,6 @@ next-env.d.ts
 
 # database
 /data/*.db
+
+# MAS config (contains encrypted credentials)
+.mas-config/

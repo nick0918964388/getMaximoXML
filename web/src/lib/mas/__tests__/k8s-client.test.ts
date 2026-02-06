@@ -3,13 +3,26 @@ import type { MasK8sConnectionOptions, MasPodInfo } from '../types';
 
 // Mock the @kubernetes/client-node module
 vi.mock('@kubernetes/client-node', () => {
-  const mockKubeConfig = {
-    loadFromOptions: vi.fn(),
-    makeApiClient: vi.fn(),
-  };
-
   const mockCoreV1Api = {
     listNamespacedPod: vi.fn(),
+  };
+
+  const mockAppsV1Api = {
+    listNamespacedDeployment: vi.fn(),
+    readNamespacedDeployment: vi.fn(),
+    patchNamespacedDeployment: vi.fn(),
+    patchNamespacedDeploymentScale: vi.fn(),
+  };
+
+  const mockKubeConfig = {
+    loadFromOptions: vi.fn(),
+    makeApiClient: vi.fn((apiClass: unknown) => {
+      // Return the correct mock based on which API class is requested
+      if (apiClass === (k8s as unknown as { AppsV1Api: unknown }).AppsV1Api) {
+        return mockAppsV1Api;
+      }
+      return mockCoreV1Api;
+    }),
   };
 
   const mockExec = {
@@ -23,10 +36,12 @@ vi.mock('@kubernetes/client-node', () => {
   return {
     KubeConfig: vi.fn(() => mockKubeConfig),
     CoreV1Api: vi.fn(() => mockCoreV1Api),
+    AppsV1Api: vi.fn(() => mockAppsV1Api),
     Exec: vi.fn(() => mockExec),
     Cp: vi.fn(() => mockCp),
     __mockKubeConfig: mockKubeConfig,
     __mockCoreV1Api: mockCoreV1Api,
+    __mockAppsV1Api: mockAppsV1Api,
     __mockExec: mockExec,
     __mockCp: mockCp,
   };
@@ -50,7 +65,13 @@ describe('MAS K8s Client', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockKubeConfig.makeApiClient as Mock).mockReturnValue(mockCoreV1Api);
+    // Restore the routing mock for makeApiClient after clearAllMocks
+    (mockKubeConfig.makeApiClient as Mock).mockImplementation((apiClass: unknown) => {
+      if (apiClass === k8s.AppsV1Api) {
+        return mockCoreV1Api; // not used in these tests, just needs a return value
+      }
+      return mockCoreV1Api;
+    });
   });
 
   describe('createK8sClient', () => {

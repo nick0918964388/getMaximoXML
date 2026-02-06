@@ -1,4 +1,4 @@
-import { LucideIcon, FileCode, FileSearch, Database } from 'lucide-react';
+import { LucideIcon, FileCode, FileSearch, Database, Server } from 'lucide-react';
 
 /**
  * Tool configuration interface
@@ -67,6 +67,14 @@ export const menuConfig: MenuConfig = {
       description: '互動式建構 Maximo DBC 資料庫配置腳本',
       icon: Database,
       path: '/tools/dbc-builder',
+      enabled: true,
+    },
+    {
+      id: 'mas-management',
+      name: 'MAS 管理',
+      description: '監控與管理 MAS 環境的 Pod 和部署',
+      icon: Server,
+      path: '/tools/mas-management',
       enabled: true,
     },
   ],

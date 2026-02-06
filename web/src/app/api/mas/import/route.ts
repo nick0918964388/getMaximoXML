@@ -4,16 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import {
-  MasConfig,
   MasImportRequestSchema,
   MasImportStatus,
 } from '@/lib/mas/types';
-import { decrypt } from '@/lib/mas/crypto';
 import {
-  createK8sClient,
   findMxinstPod,
   copyContentToPod,
   runDbcScript,
@@ -21,20 +16,7 @@ import {
 } from '@/lib/mas/k8s-client';
 import type { MasPodInfo } from '@/lib/mas/types';
 import { getMasEnvConfig } from '@/lib/mas/env';
-
-const CONFIG_FILE = path.join(process.cwd(), '.mas-config', 'config.json');
-
-/**
- * Read config from file
- */
-async function readConfig(): Promise<MasConfig | null> {
-  try {
-    const content = await fs.readFile(CONFIG_FILE, 'utf-8');
-    return JSON.parse(content) as MasConfig;
-  } catch {
-    return null;
-  }
-}
+import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
 
 /**
  * Create SSE event string
@@ -80,31 +62,21 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { dbcContent, dbcFilename } = parseResult.data;
 
-  // Read configuration
-  const config = await readConfig();
-  if (!config || !config.encryptedToken) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'MAS configuration not found. Please configure the connection first.',
-      },
-      { status: 400 }
-    );
-  }
-
-  // Decrypt token
-  let token: string;
+  // Authenticate and get K8s client
+  let authenticatedResult;
   try {
-    token = decrypt(config.encryptedToken);
-  } catch {
+    authenticatedResult = await getAuthenticatedK8sClient();
+  } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to decrypt token. The encryption key may have changed.',
+        error: error instanceof Error ? error.message : 'Authentication failed',
       },
       { status: 500 }
     );
   }
+
+  const { client: k8sClient, config } = authenticatedResult;
 
   // Create readable stream for SSE
   const encoder = new TextEncoder();
@@ -123,7 +95,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         controller.enqueue(encoder.encode(createSSEEvent(type, data)));
       };
 
-      let client: MasK8sClient | null = null;
+      const client: MasK8sClient | null = k8sClient;
       let podInfo: MasPodInfo | null = null;
       const envConfig = getMasEnvConfig();
       const importTimeout = envConfig.importTimeout;
@@ -134,14 +106,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
       try {
         // Step 1: Connecting
-        send('status', { status: 'connecting', message: 'Connecting to OCP cluster...' });
-
-        client = createK8sClient({
-          clusterUrl: config.ocpClusterUrl,
-          token,
-          namespace: config.namespace,
-          skipTLSVerify: true,
-        });
+        send('status', { status: 'connecting', message: 'Connected to OCP cluster' });
 
         // Step 2: Finding pod
         send('status', { status: 'finding-pod', message: 'Finding mxinst pod...' });
