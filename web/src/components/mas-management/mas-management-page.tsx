@@ -14,6 +14,9 @@ import type { MasManagedPodInfo } from '@/lib/mas/pod-manager-types';
 import type { MasDeploymentInfo } from '@/lib/mas/pod-manager-types';
 import type { MasApiResponse } from '@/lib/mas/types';
 
+/** Pod prefix for MAS management (different from DBC import's "mas-masw-manage-maxinst-") */
+const MAS_MGMT_POD_PREFIX = 'mas-masw-all-';
+
 export function MasManagementPage() {
   const [configOpen, setConfigOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pods');
@@ -52,7 +55,7 @@ export function MasManagementPage() {
     setPodsLoading(true);
     setPodsError(null);
     try {
-      const response = await fetch('/api/mas/pods');
+      const response = await fetch(`/api/mas/pods?podPrefix=${encodeURIComponent(MAS_MGMT_POD_PREFIX)}`);
       const data: MasApiResponse<MasManagedPodInfo[]> = await response.json();
       if (data.success && data.data) {
         setPods(data.data);
@@ -70,7 +73,7 @@ export function MasManagementPage() {
     setDeploymentsLoading(true);
     setDeploymentsError(null);
     try {
-      const response = await fetch('/api/mas/deployments');
+      const response = await fetch(`/api/mas/deployments?podPrefix=${encodeURIComponent(MAS_MGMT_POD_PREFIX)}`);
       const data: MasApiResponse<MasDeploymentInfo[]> = await response.json();
       if (data.success && data.data) {
         setDeployments(data.data);
@@ -176,7 +179,7 @@ export function MasManagementPage() {
                 {podsError && (
                   <div className="mb-4 text-sm text-destructive">{podsError}</div>
                 )}
-                <PodsTab pods={pods} loading={podsLoading} onViewLogs={handleViewLogs} podPrefix={podPrefix} />
+                <PodsTab pods={pods} loading={podsLoading} onViewLogs={handleViewLogs} podPrefix={MAS_MGMT_POD_PREFIX} />
               </TabsContent>
 
               <TabsContent value="deployments" className="mt-4">
@@ -187,12 +190,12 @@ export function MasManagementPage() {
                   deployments={deployments}
                   loading={deploymentsLoading}
                   onRefresh={loadDeployments}
-                  podPrefix={podPrefix}
+                  podPrefix={MAS_MGMT_POD_PREFIX}
                 />
               </TabsContent>
 
               <TabsContent value="logs" className="mt-4">
-                <LogViewer pods={pods} initialPodName={logPodName} />
+                <LogViewer pods={pods} initialPodName={logPodName} podPrefix={MAS_MGMT_POD_PREFIX} />
               </TabsContent>
             </Tabs>
           )}
@@ -204,7 +207,7 @@ export function MasManagementPage() {
         onOpenChange={setConfigOpen}
         onConfigSaved={handleConfigSaved}
         hideDbcFields
-        defaultPodPrefix="mas-masw-manage-all-"
+        defaultPodPrefix="mas-masw-all-"
       />
     </div>
   );

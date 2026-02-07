@@ -32,6 +32,10 @@ export class XmlBuilder {
     this.lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   }
 
+  doctype(rootElement: string, dtdFile: string): void {
+    this.lines.push(`<!DOCTYPE ${rootElement} SYSTEM "${dtdFile}">`);
+  }
+
   openTag(name: string, attrs?: XmlAttrs): void {
     this.lines.push(`${this.prefix()}<${name}${formatAttrs(attrs)}>`);
     this.depth++;

@@ -6,6 +6,7 @@ import type { DbcBuilderState } from './types';
 export function buildDbcScript(state: DbcBuilderState): string {
   const xb = new XmlBuilder();
   xb.xmlDeclaration();
+  xb.doctype('script', 'script.dtd');
 
   const scriptAttrs: Record<string, string | boolean | undefined> = {
     author: state.script.author,

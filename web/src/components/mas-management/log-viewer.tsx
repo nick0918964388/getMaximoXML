@@ -19,9 +19,10 @@ interface LogViewerProps {
   pods: MasManagedPodInfo[];
   /** Initially selected pod name */
   initialPodName?: string;
+  podPrefix?: string;
 }
 
-export function LogViewer({ pods, initialPodName }: LogViewerProps) {
+export function LogViewer({ pods, initialPodName, podPrefix }: LogViewerProps) {
   const [selectedPod, setSelectedPod] = useState<string>(initialPodName ?? '');
   const [selectedContainer, setSelectedContainer] = useState<string>('');
   const [lines, setLines] = useState<string[]>([]);
@@ -60,6 +61,9 @@ export function LogViewer({ pods, initialPodName }: LogViewerProps) {
     });
     if (selectedContainer) {
       params.set('container', selectedContainer);
+    }
+    if (podPrefix) {
+      params.set('podPrefix', podPrefix);
     }
 
     const es = new EventSource(`/api/mas/pods/${selectedPod}/logs?${params}`);

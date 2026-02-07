@@ -45,15 +45,18 @@ export async function POST(
   try {
     const { client, config } = await getAuthenticatedK8sClient();
 
-    // Security: reject non-MAS deployment names (using config podPrefix)
-    if (!isMasResource(deploymentName, config.podPrefix)) {
+    // Allow caller to override podPrefix (e.g. MAS management uses a different stem)
+    const podPrefix = request.nextUrl.searchParams.get('podPrefix') || config.podPrefix;
+
+    // Security: reject non-MAS deployment names
+    if (!isMasResource(deploymentName, podPrefix)) {
       return NextResponse.json(
         { success: false, error: `"${deploymentName}" is not a recognized MAS deployment.` },
         { status: 400 }
       );
     }
 
-    const result = await scaleDeployment(client, config.namespace, deploymentName, replicas, config.podPrefix);
+    const result = await scaleDeployment(client, config.namespace, deploymentName, replicas, podPrefix);
 
     return NextResponse.json({
       success: true,

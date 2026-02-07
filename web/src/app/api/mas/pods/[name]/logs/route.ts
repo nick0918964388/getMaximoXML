@@ -36,8 +36,11 @@ export async function GET(
 
   const { client, config } = authenticatedClient;
 
-  // Security: reject non-MAS pod names (using config podPrefix)
-  if (!isMasResource(podName, config.podPrefix)) {
+  // Allow caller to override podPrefix (e.g. MAS management uses a different stem)
+  const podPrefix = searchParams.get('podPrefix') || config.podPrefix;
+
+  // Security: reject non-MAS pod names
+  if (!isMasResource(podName, podPrefix)) {
     return NextResponse.json(
       { success: false, error: `"${podName}" is not a recognized MAS pod.` },
       { status: 400 }

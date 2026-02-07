@@ -45,7 +45,8 @@ export function DeploymentsTab({ deployments, loading, onRefresh, podPrefix }: D
     setConfirmDialog(null);
 
     try {
-      const response = await fetch(`/api/mas/deployments/${name}/scale`, {
+      const prefixParam = podPrefix ? `?podPrefix=${encodeURIComponent(podPrefix)}` : '';
+      const response = await fetch(`/api/mas/deployments/${name}/scale${prefixParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ replicas }),

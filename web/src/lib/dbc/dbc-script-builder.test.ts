@@ -12,10 +12,25 @@ describe('buildDbcScript', () => {
     };
     const xml = buildDbcScript(state);
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(xml).toContain('<!DOCTYPE script SYSTEM "script.dtd">');
     expect(xml).toContain('<script author="ADMIN" scriptname="V1000_01">');
     expect(xml).toContain('<statements>');
     expect(xml).toContain('</statements>');
     expect(xml).toContain('</script>');
+  });
+
+  it('should have DOCTYPE on the line between xml declaration and script tag', () => {
+    const state: DbcBuilderState = {
+      script: { author: 'ADMIN', scriptname: 'V1000_01' },
+      checks: [],
+      operations: [],
+      selectedId: null,
+    };
+    const xml = buildDbcScript(state);
+    const lines = xml.split('\n');
+    expect(lines[0]).toBe('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(lines[1]).toBe('<!DOCTYPE script SYSTEM "script.dtd">');
+    expect(lines[2]).toContain('<script');
   });
 
   it('should include description when provided', () => {
