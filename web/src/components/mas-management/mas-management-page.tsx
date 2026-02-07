@@ -34,7 +34,6 @@ export function MasManagementPage() {
 
   // Connection info
   const [namespace, setNamespace] = useState<string>('');
-  const [podPrefix, setPodPrefix] = useState<string>('');
   const [isConfigured, setIsConfigured] = useState(false);
 
   const loadConfig = useCallback(async () => {
@@ -43,7 +42,6 @@ export function MasManagementPage() {
       const data = await response.json();
       if (data.success && data.data) {
         setNamespace(data.data.namespace || '');
-        setPodPrefix(data.data.podPrefix || '');
         setIsConfigured(!!data.data.encryptedToken);
       }
     } catch {

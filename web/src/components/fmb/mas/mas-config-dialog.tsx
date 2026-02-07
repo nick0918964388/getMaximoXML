@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -86,14 +86,7 @@ export function MasConfigDialog({
   const [hasExistingToken, setHasExistingToken] = useState(false);
   const [hasEnvCredentials, setHasEnvCredentials] = useState(false);
 
-  // Load existing configuration when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadConfig();
-    }
-  }, [open]);
-
-  const loadConfig = async () => {
+  const loadConfig = useCallback(async () => {
     setIsLoading(true);
     setSaveError(null);
     setTestResult(null);
@@ -134,7 +127,14 @@ export function MasConfigDialog({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [defaultPodPrefix]);
+
+  // Load existing configuration when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadConfig();
+    }
+  }, [open, loadConfig]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};

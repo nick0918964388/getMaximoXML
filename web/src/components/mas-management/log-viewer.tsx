@@ -97,7 +97,7 @@ export function LogViewer({ pods, initialPodName, podPrefix }: LogViewerProps) {
       setConnected(false);
       es.close();
     };
-  }, [selectedPod, selectedContainer]);
+  }, [selectedPod, selectedContainer, podPrefix]);
 
   // Disconnect on unmount or pod change
   useEffect(() => {
