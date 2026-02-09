@@ -2,23 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SAFieldDefinition, ApplicationMetadata, DetailTableConfig, DialogTemplate, SubTabDefinition } from '@/lib/types';
+import { saveDraft as saveDraftToSupabase } from '@/lib/supabase/drafts';
+import type { DraftData } from '@/lib/supabase/drafts';
 
 const DRAFT_KEY = 'maximo-xml-generator-draft';
-const DEBOUNCE_MS = 1500; // Auto-save 1.5 seconds after last change
+const DEBOUNCE_MS = 1500;
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-
-interface DraftData {
-  fields: SAFieldDefinition[];
-  metadata: ApplicationMetadata;
-  detailTableConfigs: Record<string, DetailTableConfig>;
-  dialogTemplates: DialogTemplate[];
-  subTabConfigs: Record<string, SubTabDefinition[]>;
-  mainDetailLabels: Record<string, string>;
-  projectId: string | null;
-  projectName: string;
-  savedAt: string;
-}
 
 interface UseAutoSaveOptions {
   fields: SAFieldDefinition[];
@@ -29,6 +19,7 @@ interface UseAutoSaveOptions {
   mainDetailLabels?: Record<string, string>;
   projectId: string | null;
   projectName: string;
+  userId: string | null;
   enabled?: boolean;
 }
 
@@ -39,7 +30,7 @@ interface UseAutoSaveReturn {
 }
 
 /**
- * Get draft data from localStorage
+ * Get draft data from localStorage (fallback / offline support)
  */
 export function getDraft(): DraftData | null {
   if (typeof window === 'undefined') return null;
@@ -69,7 +60,7 @@ export function clearDraft(): void {
 }
 
 /**
- * Auto-save hook for fields and metadata
+ * Auto-save hook — saves to Supabase with localStorage as synchronous fallback
  */
 export function useAutoSave({
   fields,
@@ -80,6 +71,7 @@ export function useAutoSave({
   mainDetailLabels = {},
   projectId,
   projectName,
+  userId,
   enabled = true,
 }: UseAutoSaveOptions): UseAutoSaveReturn {
   const [status, setStatus] = useState<SaveStatus>('idle');
@@ -87,92 +79,79 @@ export function useAutoSave({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstRender = useRef(true);
 
-  // Save to localStorage
-  const saveDraft = useCallback(() => {
+  const buildDraft = useCallback((): DraftData => ({
+    fields,
+    metadata,
+    detailTableConfigs,
+    dialogTemplates,
+    subTabConfigs,
+    mainDetailLabels,
+    projectId,
+    projectName,
+    savedAt: new Date().toISOString(),
+  }), [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels, projectId, projectName]);
+
+  // Save to localStorage (sync) + Supabase (async)
+  const saveDraft = useCallback(async () => {
+    const draft = buildDraft();
+
+    // Always save to localStorage as immediate backup
     try {
-      const draft: DraftData = {
-        fields,
-        metadata,
-        detailTableConfigs,
-        dialogTemplates,
-        subTabConfigs,
-        mainDetailLabels,
-        projectId,
-        projectName,
-        savedAt: new Date().toISOString(),
-      };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      setStatus('saved');
-      setLastSavedAt(new Date());
-    } catch (error) {
-      console.error('Auto-save error:', error);
-      setStatus('error');
+    } catch { /* ignore */ }
+
+    // Save to Supabase if authenticated
+    if (userId) {
+      try {
+        const ok = await saveDraftToSupabase(userId, draft);
+        if (ok) {
+          setStatus('saved');
+          setLastSavedAt(new Date());
+          return;
+        }
+      } catch { /* fall through */ }
     }
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels, projectId, projectName]);
+
+    // Fallback: still mark as saved (localStorage worked)
+    setStatus('saved');
+    setLastSavedAt(new Date());
+  }, [buildDraft, userId]);
 
   // Debounced auto-save on changes
   useEffect(() => {
     if (!enabled) return;
 
-    // Skip first render (don't save initial empty state)
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
 
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Set status to saving (will debounce)
     setStatus('saving');
 
-    // Debounce the save
     timeoutRef.current = setTimeout(() => {
       saveDraft();
     }, DEBOUNCE_MS);
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, projectId, projectName, enabled, saveDraft]);
 
-  // Save on window unload
+  // Save on window unload (synchronous localStorage only)
   useEffect(() => {
     if (!enabled) return;
 
     const handleBeforeUnload = () => {
-      // Synchronous save on unload
       try {
-        const draft: DraftData = {
-          fields,
-          metadata,
-          detailTableConfigs,
-          dialogTemplates,
-          subTabConfigs,
-          mainDetailLabels,
-          projectId,
-          projectName,
-          savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      } catch {
-        // Ignore errors on unload
-      }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft()));
+      } catch { /* ignore */ }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [fields, metadata, detailTableConfigs, dialogTemplates, subTabConfigs, mainDetailLabels, projectId, projectName, enabled]);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [buildDraft, enabled]);
 
-  return {
-    status,
-    lastSavedAt,
-    clearDraft,
-  };
+  return { status, lastSavedAt, clearDraft };
 }

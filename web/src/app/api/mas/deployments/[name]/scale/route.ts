@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
 import { scaleDeployment } from '@/lib/mas/pod-manager';
-import { isMasResource } from '@/lib/mas/pod-manager-types';
+import { isMasResource, isValidMasPodPrefix } from '@/lib/mas/pod-manager-types';
 
 const ScaleRequestSchema = z.object({
   replicas: z.number().int().min(0).max(10),
@@ -46,7 +46,17 @@ export async function POST(
     const { client, config } = await getAuthenticatedK8sClient();
 
     // Allow caller to override podPrefix (e.g. MAS management uses a different stem)
-    const podPrefix = request.nextUrl.searchParams.get('podPrefix') || config.podPrefix;
+    const rawPodPrefix = request.nextUrl.searchParams.get('podPrefix') || config.podPrefix;
+
+    // Security: reject arbitrary podPrefix values
+    if (!isValidMasPodPrefix(rawPodPrefix)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid pod prefix.' },
+        { status: 400 }
+      );
+    }
+
+    const podPrefix = rawPodPrefix;
 
     // Security: reject non-MAS deployment names
     if (!isMasResource(deploymentName, podPrefix)) {

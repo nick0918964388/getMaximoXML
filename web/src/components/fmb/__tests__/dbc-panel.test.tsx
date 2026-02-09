@@ -373,7 +373,7 @@ describe('DbcPanel', () => {
 
       await waitFor(() => {
         const pre = document.querySelector('pre');
-        expect(pre?.textContent).toContain('description="Custom description text"');
+        expect(pre?.textContent).toContain('<description>Custom description text</description>');
       });
     });
 

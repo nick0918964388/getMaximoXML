@@ -54,6 +54,15 @@ export function buildMasPrefixes(podPrefix: string): string[] {
 }
 
 /**
+ * Validate that a podPrefix ends with a known MAS resource kind.
+ * Prevents arbitrary prefixes from bypassing isMasResource guards.
+ */
+export function isValidMasPodPrefix(podPrefix: string): boolean {
+  const trimmed = podPrefix.replace(/-$/, '');
+  return MAS_RESOURCE_KINDS.some((kind) => trimmed.endsWith(`-${kind}`));
+}
+
+/**
  * Annotation key used to store previous replica count before scaling to 0
  */
 export const PREVIOUS_REPLICAS_ANNOTATION = 'mas-tools/previous-replicas';

@@ -244,10 +244,12 @@ export function generateDbcXml(script: DbcScript): string {
   lines.push('<!DOCTYPE script SYSTEM "script.dtd">');
 
   // Script root element with metadata
-  const descAttr = script.metadata.description
-    ? ` description="${escapeXml(script.metadata.description)}"`
-    : '';
-  lines.push(`<script author="${escapeXml(script.metadata.author)}" scriptname="${escapeXml(script.metadata.scriptname)}"${descAttr}>`);
+  lines.push(`<script author="${escapeXml(script.metadata.author)}" scriptname="${escapeXml(script.metadata.scriptname)}">`);
+
+  // Description as child element (per DTD spec)
+  if (script.metadata.description) {
+    lines.push(`  <description>${escapeXml(script.metadata.description)}</description>`);
+  }
 
   // Statements wrapper
   const hasContent = script.tables.length > 0 || (script.relationships && script.relationships.length > 0);

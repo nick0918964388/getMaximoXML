@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Upload, Trash2 } from 'lucide-react';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { saveDbcState, getDbcState } from '@/lib/supabase/dbc-state';
+import { LoginPage } from '@/components/auth/login-page';
 import { OperationPalette } from './operation-palette';
 import { OperationList } from './operation-list';
 import { OperationForm } from './operation-form';
@@ -119,21 +122,32 @@ const defaultState: DbcBuilderState = {
 };
 
 export function DbcBuilderPage() {
+  const { user, loading: authLoading } = useAuth();
+
   const [state, dispatch] = useReducer(
     reducer,
     defaultState,
     (init) => loadSavedState() || init
   );
 
-  // Autosave to localStorage
+  // Load from Supabase on auth ready
+  useEffect(() => {
+    if (!user) return;
+    getDbcState(user.id).then((saved) => {
+      if (saved) dispatch({ type: 'LOAD', state: saved });
+    });
+  }, [user]);
+
+  // Autosave: localStorage (sync) + Supabase (async)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (user) saveDbcState(user.id, state);
     }, 500);
     return () => clearTimeout(saveTimer.current);
-  }, [state]);
+  }, [state, user]);
 
   const xml = useMemo(() => buildDbcScript(state), [state]);
   const filename = state.script.scriptname || 'script';
@@ -157,6 +171,13 @@ export function DbcBuilderPage() {
     if (state.operations.length > 0 && !confirm('Clear all operations?')) return;
     dispatch({ type: 'CLEAR' });
   }, [state.operations.length]);
+
+  if (authLoading) {
+    return <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">載入中...</p></div>;
+  }
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">

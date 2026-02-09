@@ -62,6 +62,13 @@ export function decrypt(encryptedData: string): string {
   const key = getEncryptionKey();
   const combined = Buffer.from(encryptedData, 'base64');
 
+  // Validate minimum length: IV (12) + AuthTag (16) = 28 bytes
+  if (combined.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+    throw new Error(
+      `Encrypted data is too short (${combined.length} bytes, minimum ${IV_LENGTH + AUTH_TAG_LENGTH})`
+    );
+  }
+
   // Extract components
   const iv = combined.subarray(0, IV_LENGTH);
   const authTag = combined.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);

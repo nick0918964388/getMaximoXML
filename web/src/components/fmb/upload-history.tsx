@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText, Clock } from 'lucide-react';
@@ -13,18 +13,24 @@ import {
 interface UploadHistoryProps {
   onLoad: (xmlContent: string, fileName: string) => void;
   refreshKey?: number;
+  userId: string;
 }
 
-export function UploadHistory({ onLoad, refreshKey }: UploadHistoryProps) {
+export function UploadHistory({ onLoad, refreshKey, userId }: UploadHistoryProps) {
   const [history, setHistory] = useState<FmbUploadRecord[]>([]);
 
-  useEffect(() => {
-    setHistory(getUploadHistory());
-  }, [refreshKey]);
+  const loadHistory = useCallback(async () => {
+    const records = await getUploadHistory(userId);
+    setHistory(records);
+  }, [userId]);
 
-  const handleDelete = (id: string) => {
-    deleteUploadHistory(id);
-    setHistory(getUploadHistory());
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory, refreshKey]);
+
+  const handleDelete = async (id: string) => {
+    await deleteUploadHistory(id);
+    await loadHistory();
   };
 
   if (history.length === 0) return null;

@@ -29,6 +29,18 @@ function createCollectorStream(
 }
 
 /**
+ * Validate a shell argument contains no injection characters.
+ * Only allows alphanumeric, hyphen, underscore, dot, forward slash, and equals.
+ * @throws Error if the argument contains invalid characters
+ */
+export function sanitizeShellArg(arg: string): string {
+  if (!/^[a-zA-Z0-9\-_./=]+$/.test(arg)) {
+    throw new Error(`Shell argument contains invalid characters: "${arg}"`);
+  }
+  return arg;
+}
+
+/**
  * K8s client wrapper with configuration
  */
 export interface MasK8sClient {
@@ -162,7 +174,7 @@ export async function copyContentToPod(
 
   return new Promise((resolve, reject) => {
     // Use sh -c to pipe base64 decode to the target file
-    const command = ['sh', '-c', `echo '${base64Content}' | base64 -d > ${remotePath}`];
+    const command = ['sh', '-c', `echo '${base64Content}' | base64 -d > ${sanitizeShellArg(remotePath)}`];
 
     const stdout: string[] = [];
     const stderr: string[] = [];
@@ -330,7 +342,7 @@ export async function runDbcScript(
   const command = [
     'sh',
     '-c',
-    `cd ${dbcScriptPath} && ./runscriptfile.sh -f${scriptName}`,
+    `cd ${sanitizeShellArg(dbcScriptPath)} && ./runscriptfile.sh -f${sanitizeShellArg(scriptName)}`,
   ];
 
   return execInPod(client, podInfo, command, onOutput, options);

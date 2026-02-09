@@ -5,17 +5,17 @@ import { SAFieldDefinition, ApplicationMetadata, DEFAULT_METADATA, SavedProject,
 import { processFields } from '@/lib/field-processor';
 import { generateApplication } from '@/lib/assemblers';
 import { generateAllSQL } from '@/lib/generators';
-import { saveProject, getUsername, setUsername } from '@/lib/storage';
-import { hasLegacyData, performMigration, getLegacyProjects } from '@/lib/migration';
+import { saveProject } from '@/lib/supabase/projects';
 import { resetIdGenerator } from '@/lib/utils/id-generator';
 import { useAutoSave, getDraft, clearDraft } from '@/hooks';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { LoginPage } from '@/components/auth/login-page';
 
 import { FieldList } from '@/components/field-editor';
 import { ConfigForm } from '@/components/config-form';
 import { DialogEditor } from '@/components/dialog-editor';
 import { PreviewPanel } from '@/components/preview-panel';
 import { HistoryList } from '@/components/history-list';
-import { UsernameDialog } from '@/components/username-dialog';
 import { downloadFile, downloadAsZip } from '@/components/download-buttons';
 import { useFieldSuggestions } from '@/hooks/use-field-suggestions';
 
@@ -41,9 +41,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { User } from 'lucide-react';
 
 export default function XmlGeneratorPage() {
+  const { user, loading: authLoading } = useAuth();
+
   const [fields, setFields] = useState<SAFieldDefinition[]>([]);
   const [metadata, setMetadata] = useState<ApplicationMetadata>(DEFAULT_METADATA);
   const [detailTableConfigs, setDetailTableConfigs] = useState<Record<string, DetailTableConfig>>({});
@@ -57,74 +58,10 @@ export default function XmlGeneratorPage() {
   const [fieldEditorTab, setFieldEditorTab] = useState('_list');
   const [restoreDraftDialogOpen, setRestoreDraftDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Username state
-  const [username, setUsernameState] = useState<string | null>(null);
-  const [usernameDialogOpen, setUsernameDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   // Field suggestions for autocomplete
   const fieldSuggestions = useFieldSuggestions(fields);
-
-  // Migration state
-  const [migrationDialogOpen, setMigrationDialogOpen] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationResult, setMigrationResult] = useState<{ migrated: number; failed: number } | null>(null);
-  const [legacyProjectCount, setLegacyProjectCount] = useState(0);
-
-  // Initialize username on mount
-  useEffect(() => {
-    const storedUsername = getUsername();
-    if (storedUsername) {
-      setUsernameState(storedUsername);
-    } else {
-      setUsernameDialogOpen(true);
-    }
-    setIsLoading(false);
-  }, []);
-
-  // Handle username submit
-  const handleUsernameSubmit = useCallback((newUsername: string) => {
-    setUsername(newUsername);
-    setUsernameState(newUsername);
-    setUsernameDialogOpen(false);
-    // Refresh history list when username changes
-    setHistoryRefreshKey(prev => prev + 1);
-
-    // Check for legacy data to migrate
-    if (hasLegacyData()) {
-      const projects = getLegacyProjects();
-      setLegacyProjectCount(projects.length);
-      setMigrationDialogOpen(true);
-    }
-  }, []);
-
-  // Handle migration
-  const handleMigrate = useCallback(async () => {
-    if (!username) return;
-
-    setIsMigrating(true);
-    try {
-      const result = await performMigration(username);
-      setMigrationResult({ migrated: result.migrated, failed: result.failed });
-      if (result.migrated > 0) {
-        // Refresh history list after migration
-        setHistoryRefreshKey(prev => prev + 1);
-      }
-    } catch (error) {
-      console.error('Migration failed:', error);
-      setMigrationResult({ migrated: 0, failed: legacyProjectCount });
-    } finally {
-      setIsMigrating(false);
-    }
-  }, [username, legacyProjectCount]);
-
-  // Close migration dialog
-  const handleCloseMigrationDialog = useCallback(() => {
-    setMigrationDialogOpen(false);
-    setMigrationResult(null);
-  }, []);
 
   // Auto-save hook
   const { status: autoSaveStatus, lastSavedAt } = useAutoSave({
@@ -136,18 +73,19 @@ export default function XmlGeneratorPage() {
     mainDetailLabels,
     projectId: currentProjectId,
     projectName,
-    enabled: true,
+    userId: user?.id ?? null,
+    enabled: !!user,
   });
 
-  // Check for draft on mount
+  // Check for draft on mount (after auth loads)
   useEffect(() => {
-    if (!isLoading && username) {
+    if (!authLoading && user) {
       const draft = getDraft();
       if (draft && (draft.fields.length > 0 || draft.metadata.id)) {
         setRestoreDraftDialogOpen(true);
       }
     }
-  }, [isLoading, username]);
+  }, [authLoading, user]);
 
   // Restore draft
   const handleRestoreDraft = useCallback(() => {
@@ -192,35 +130,27 @@ export default function XmlGeneratorPage() {
     }
 
     try {
-      // Reset ID generator for consistent output
       resetIdGenerator();
 
-      // Sanitize fields: clear stale subTabName references not in subTabConfigs
       const sanitizedFields = fields.map(f => {
         if (f.subTabName) {
           const tabSubTabs = subTabConfigs[f.tabName || 'Main'] || [];
           const exists = tabSubTabs.some(st => st.label === f.subTabName);
-          if (!exists) {
-            return { ...f, subTabName: '' };
-          }
+          if (!exists) return { ...f, subTabName: '' };
         }
         return f;
       });
 
-      // Process fields into application definition
       const appDef = processFields(sanitizedFields);
 
-      // Apply custom mainDetailLabels from state
       for (const [tabName, tab] of appDef.tabs) {
         if (mainDetailLabels[tabName]) {
           tab.mainDetailLabel = mainDetailLabels[tabName];
         }
       }
 
-      // Generate XML with detail table configs and dialog templates
       const xml = generateApplication(appDef, metadata, detailTableConfigs, dialogTemplates);
 
-      // Collect all processed fields for SQL generation
       const allProcessedFields = [
         ...appDef.listFields,
         ...Array.from(appDef.tabs.values()).flatMap(tab => [
@@ -229,7 +159,6 @@ export default function XmlGeneratorPage() {
         ]),
       ];
 
-      // Generate SQL
       const sql = generateAllSQL(allProcessedFields, metadata.mboName);
 
       return { xmlContent: xml, sqlContent: sql };
@@ -257,19 +186,15 @@ export default function XmlGeneratorPage() {
     const filename = metadata.id.toLowerCase() || 'maximo';
 
     const files = [];
-    if (xmlContent) {
-      files.push({ name: `${filename}.xml`, content: xmlContent });
-    }
-    if (sqlContent) {
-      files.push({ name: `${filename}.sql`, content: sqlContent });
-    }
+    if (xmlContent) files.push({ name: `${filename}.xml`, content: xmlContent });
+    if (sqlContent) files.push({ name: `${filename}.sql`, content: sqlContent });
 
     await downloadAsZip(files, `${filename}.zip`);
   }, [xmlContent, sqlContent, metadata.id]);
 
-  // Save project (async)
+  // Save project (Supabase)
   const handleSaveProject = async () => {
-    if (!projectName.trim() || !username) return;
+    if (!projectName.trim() || !user) return;
 
     setIsSaving(true);
     try {
@@ -278,7 +203,6 @@ export default function XmlGeneratorPage() {
         metadata,
         fields,
         currentProjectId || undefined,
-        username,
         detailTableConfigs,
         dialogTemplates,
         subTabConfigs,
@@ -288,7 +212,6 @@ export default function XmlGeneratorPage() {
         setCurrentProjectId(saved.id);
         setSaveDialogOpen(false);
         clearDraft();
-        // Refresh history list after saving
         setHistoryRefreshKey(prev => prev + 1);
       }
     } catch (error) {
@@ -324,8 +247,8 @@ export default function XmlGeneratorPage() {
     clearDraft();
   };
 
-  // Show loading state while checking username
-  if (isLoading) {
+  // Show loading state while checking auth
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">載入中...</p>
@@ -333,15 +256,13 @@ export default function XmlGeneratorPage() {
     );
   }
 
+  // Show login page if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Username Dialog */}
-      <UsernameDialog
-        open={usernameDialogOpen}
-        onSubmit={handleUsernameSubmit}
-        currentUsername={username}
-      />
-
       {/* Header */}
       <header className="border-b shrink-0">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -359,18 +280,6 @@ export default function XmlGeneratorPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* User Display */}
-            {username && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setUsernameDialogOpen(true)}
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <User className="h-4 w-4" />
-                <span>{username}</span>
-              </Button>
-            )}
             <Button variant="outline" onClick={handleNewProject}>
               新專案
             </Button>
@@ -380,7 +289,6 @@ export default function XmlGeneratorPage() {
                 setProjectName(projectName || metadata.id || '未命名');
                 setSaveDialogOpen(true);
               }}
-              disabled={!username}
             >
               儲存專案
             </Button>
@@ -400,10 +308,7 @@ export default function XmlGeneratorPage() {
             </TabsList>
 
             <TabsContent value="editor" className="space-y-6">
-              {/* Config Form */}
               <ConfigForm metadata={metadata} onMetadataChange={setMetadata} />
-
-              {/* Field Editor */}
               <Card>
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg">欄位定義</CardTitle>
@@ -446,7 +351,6 @@ export default function XmlGeneratorPage() {
             <TabsContent value="history">
               <HistoryList
                 onLoadProject={handleLoadProject}
-                username={username}
                 refreshKey={historyRefreshKey}
               />
             </TabsContent>
@@ -454,7 +358,7 @@ export default function XmlGeneratorPage() {
         </div>
       </div>
 
-      {/* 儲存對話框 */}
+      {/* Save Dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -482,7 +386,7 @@ export default function XmlGeneratorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 恢復草稿對話框 */}
+      {/* Restore Draft Dialog */}
       <AlertDialog open={restoreDraftDialogOpen} onOpenChange={setRestoreDraftDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -498,49 +402,6 @@ export default function XmlGeneratorPage() {
             <AlertDialogAction onClick={handleRestoreDraft}>
               恢復草稿
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 資料遷移對話框 */}
-      <AlertDialog open={migrationDialogOpen} onOpenChange={handleCloseMigrationDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {migrationResult ? '遷移完成' : '發現舊版資料'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {migrationResult ? (
-                <>
-                  成功遷移 {migrationResult.migrated} 個專案
-                  {migrationResult.failed > 0 && (
-                    <>，{migrationResult.failed} 個專案遷移失敗</>
-                  )}
-                  。
-                </>
-              ) : (
-                <>
-                  系統發現 {legacyProjectCount} 個儲存在瀏覽器中的舊版專案。
-                  是否要將這些專案遷移到新的儲存系統？遷移後，您的專案將與使用者名稱「{username}」關聯。
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            {migrationResult ? (
-              <AlertDialogAction onClick={handleCloseMigrationDialog}>
-                確定
-              </AlertDialogAction>
-            ) : (
-              <>
-                <AlertDialogCancel disabled={isMigrating}>
-                  稍後再說
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={handleMigrate} disabled={isMigrating}>
-                  {isMigrating ? '遷移中...' : '開始遷移'}
-                </AlertDialogAction>
-              </>
-            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

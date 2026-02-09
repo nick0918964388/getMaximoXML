@@ -390,7 +390,7 @@ describe('generateDbcXml', () => {
 
     const xml = generateDbcXml(script);
 
-    expect(xml).toContain('description="This is a test script"');
+    expect(xml).toContain('<description>This is a test script</description>');
   });
 
   it('should generate define_table elements', () => {

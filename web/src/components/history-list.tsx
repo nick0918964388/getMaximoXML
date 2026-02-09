@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { SavedProject } from '@/lib/types';
-import { getProjects, deleteProject, exportProject, importProject } from '@/lib/storage';
+import { getProjects, deleteProject, exportProject, importProject } from '@/lib/supabase/projects';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,28 +22,20 @@ import { Loader2 } from 'lucide-react';
 
 interface HistoryListProps {
   onLoadProject: (project: SavedProject) => void;
-  username: string | null;
   refreshKey?: number;
 }
 
-export function HistoryList({ onLoadProject, username, refreshKey }: HistoryListProps) {
+export function HistoryList({ onLoadProject, refreshKey }: HistoryListProps) {
   const [projects, setProjects] = useState<SavedProject[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
-  // Load projects when username changes or refresh is triggered
   const loadProjects = useCallback(async () => {
-    if (!username) {
-      setProjects([]);
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const fetchedProjects = await getProjects(username);
+      const fetchedProjects = await getProjects();
       setProjects(fetchedProjects);
     } catch (error) {
       console.error('Failed to load projects:', error);
@@ -51,7 +43,7 @@ export function HistoryList({ onLoadProject, username, refreshKey }: HistoryList
     } finally {
       setIsLoading(false);
     }
-  }, [username]);
+  }, []);
 
   useEffect(() => {
     loadProjects();
@@ -92,7 +84,7 @@ export function HistoryList({ onLoadProject, username, refreshKey }: HistoryList
       setIsImporting(true);
       try {
         const text = await file.text();
-        const imported = await importProject(text, username || undefined);
+        const imported = await importProject(text);
         if (imported) {
           await loadProjects();
         } else {
@@ -127,7 +119,7 @@ export function HistoryList({ onLoadProject, username, refreshKey }: HistoryList
             variant="outline"
             size="sm"
             onClick={handleImport}
-            disabled={!username || isImporting}
+            disabled={isImporting}
           >
             {isImporting ? (
               <>
@@ -142,11 +134,7 @@ export function HistoryList({ onLoadProject, username, refreshKey }: HistoryList
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px]">
-          {!username ? (
-            <div className="text-center py-8 text-muted-foreground">
-              請先設定使用者名稱以查看專案。
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>

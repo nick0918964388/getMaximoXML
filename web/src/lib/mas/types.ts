@@ -152,7 +152,7 @@ export const MasImportRequestSchema = z.object({
   dbcFilename: z
     .string()
     .min(1, { message: 'DBC filename is required' })
-    .regex(/\.dbc$/, { message: 'Filename must end with .dbc' }),
+    .regex(/^[a-zA-Z0-9_\-]+\.dbc$/, { message: 'Filename must be a simple name ending with .dbc (no paths or special characters)' }),
 });
 
 // =============================================================================

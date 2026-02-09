@@ -1,63 +1,28 @@
-import { getUsername } from '../storage';
+import {
+  getUploadHistory as getFromSupabase,
+  addUploadHistory as addToSupabase,
+  deleteUploadHistory as deleteFromSupabase,
+  clearUploadHistory as clearFromSupabase,
+  type FmbUploadRecord,
+} from '@/lib/supabase/fmb-history';
 
-export interface FmbUploadRecord {
-  id: string;
-  fileName: string;
-  moduleName: string;
-  fieldCount: number;
-  uploadedAt: string;
-  /** The raw XML content stored for re-loading */
-  xmlContent: string;
+export type { FmbUploadRecord };
+
+export async function getUploadHistory(userId: string): Promise<FmbUploadRecord[]> {
+  return getFromSupabase(userId);
 }
 
-const STORAGE_KEY_PREFIX = 'fmb-upload-history';
-const MAX_HISTORY = 20;
-
-function storageKey(username: string): string {
-  return `${STORAGE_KEY_PREFIX}:${username}`;
+export async function addUploadHistory(
+  userId: string,
+  record: Omit<FmbUploadRecord, 'id' | 'uploadedAt'>
+): Promise<FmbUploadRecord | null> {
+  return addToSupabase(userId, record);
 }
 
-export function getUploadHistory(): FmbUploadRecord[] {
-  if (typeof window === 'undefined') return [];
-  const username = getUsername();
-  if (!username) return [];
-
-  try {
-    const raw = localStorage.getItem(storageKey(username));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+export async function deleteUploadHistory(id: string): Promise<boolean> {
+  return deleteFromSupabase(id);
 }
 
-export function addUploadHistory(record: Omit<FmbUploadRecord, 'id' | 'uploadedAt'>): FmbUploadRecord | null {
-  const username = getUsername();
-  if (!username) return null;
-
-  const entry: FmbUploadRecord = {
-    ...record,
-    id: crypto.randomUUID(),
-    uploadedAt: new Date().toISOString(),
-  };
-
-  const history = getUploadHistory();
-  history.unshift(entry);
-  // Keep only the latest N records
-  const trimmed = history.slice(0, MAX_HISTORY);
-  localStorage.setItem(storageKey(username), JSON.stringify(trimmed));
-  return entry;
-}
-
-export function deleteUploadHistory(id: string): void {
-  const username = getUsername();
-  if (!username) return;
-
-  const history = getUploadHistory().filter((r) => r.id !== id);
-  localStorage.setItem(storageKey(username), JSON.stringify(history));
-}
-
-export function clearUploadHistory(): void {
-  const username = getUsername();
-  if (!username) return;
-  localStorage.removeItem(storageKey(username));
+export async function clearUploadHistory(userId: string): Promise<boolean> {
+  return clearFromSupabase(userId);
 }

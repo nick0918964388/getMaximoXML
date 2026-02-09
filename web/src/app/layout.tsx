@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { GlobalHeader } from "@/components/global-header";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/supabase/auth-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,16 +34,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SidebarProvider defaultOpen={false}>
-          <AppSidebar />
-          <SidebarInset>
-            <GlobalHeader />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
-        <Toaster position="top-center" duration={2000} />
+        <AuthProvider>
+          <SidebarProvider defaultOpen={false}>
+            <AppSidebar />
+            <SidebarInset>
+              <GlobalHeader />
+              <main className="flex-1 overflow-auto">
+                {children}
+              </main>
+            </SidebarInset>
+          </SidebarProvider>
+          <Toaster position="top-center" duration={2000} />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -15,8 +15,11 @@ import type { FmbModule } from '@/lib/fmb/types';
 import { DEFAULT_METADATA } from '@/lib/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { LoginPage } from '@/components/auth/login-page';
 
 export default function FmbConverterPage() {
+  const { user, loading: authLoading } = useAuth();
   const [module, setModule] = useState<FmbModule | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -33,13 +36,12 @@ export default function FmbConverterPage() {
         setModule(parsed);
         setFileName(name);
 
-        // Always convert to get fields for DBC panel
         try {
           const result = convertFmbToMaximo(parsed);
           setConversionResult(result);
 
-          if (saveHistory) {
-            addUploadHistory({
+          if (saveHistory && user) {
+            addUploadHistory(user.id, {
               fileName: name,
               moduleName: parsed.name,
               fieldCount: result.fields.filter((f) => f.area !== 'list').length,
@@ -48,7 +50,6 @@ export default function FmbConverterPage() {
             setHistoryKey((k) => k + 1);
           }
         } catch {
-          // Conversion failure is non-critical for viewing
           setConversionResult(null);
         }
       } catch (e) {
@@ -59,7 +60,7 @@ export default function FmbConverterPage() {
         setParsing(false);
       }
     }, 0);
-  }, []);
+  }, [user]);
 
   const handleFileLoaded = useCallback((content: string, name: string) => {
     loadXml(content, name, true);
@@ -69,9 +70,15 @@ export default function FmbConverterPage() {
     loadXml(content, name, false);
   }, [loadXml]);
 
+  if (authLoading) {
+    return <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">載入中...</p></div>;
+  }
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <header className="border-b shrink-0">
         <div className="container mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold">FMB 轉換器</h1>
@@ -81,12 +88,11 @@ export default function FmbConverterPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto px-4 py-6 space-y-4">
           <UploadPanel onFileLoaded={handleFileLoaded} />
 
-          <UploadHistory onLoad={handleHistoryLoad} refreshKey={historyKey} />
+          <UploadHistory onLoad={handleHistoryLoad} refreshKey={historyKey} userId={user.id} />
 
           {parsing && (
             <div className="flex items-center gap-2 text-muted-foreground text-sm">

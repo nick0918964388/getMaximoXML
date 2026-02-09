@@ -7,7 +7,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthenticatedK8sClient } from '@/lib/mas/config-reader';
 import { streamPodLogs } from '@/lib/mas/pod-manager';
-import { isMasResource } from '@/lib/mas/pod-manager-types';
+import { isMasResource, isValidMasPodPrefix } from '@/lib/mas/pod-manager-types';
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +37,17 @@ export async function GET(
   const { client, config } = authenticatedClient;
 
   // Allow caller to override podPrefix (e.g. MAS management uses a different stem)
-  const podPrefix = searchParams.get('podPrefix') || config.podPrefix;
+  const rawPodPrefix = searchParams.get('podPrefix') || config.podPrefix;
+
+  // Security: reject arbitrary podPrefix values
+  if (!isValidMasPodPrefix(rawPodPrefix)) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid pod prefix.' },
+      { status: 400 }
+    );
+  }
+
+  const podPrefix = rawPodPrefix;
 
   // Security: reject non-MAS pod names
   if (!isMasResource(podName, podPrefix)) {

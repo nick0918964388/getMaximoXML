@@ -3,5 +3,7 @@
   "namespace": "mas-mas-manage",
   "podPrefix": "mas-masw-manage-maxinst-",
   "dbcTargetPath": "/opt/IBM/SMP/maximo/tools/maximo/en/script/",
-  "encryptedToken": "jUp19FK4PqAtALICZ5xpG9M3WbG8nVT5tGiadsyThXGIleytWebi5FrBMye41r4NT049uYoU3UsFGeBdfm7K5RKehX3jDh9GA+KnBLoq"
+  "encryptedToken": "OjsN7X0/W3UQ84S53VzFdW5U0eJyZmulxn8x9Zbg1FPSOggRiNrBlXRGMEZ+O4/QIwPI/xd3tX7L34rXrwPOTDnSXM1gexQe1m1MO8Z6",
+  "encryptedUsername": "DCLFLhATSbw3jsTVT0Ahbm+zRtTWkEnktUssHsDspyW3a6g=",
+  "encryptedPassword": "AthfMw6GvSyp2qdeBTUpqb63mwAYY8OuyDOWmN/yyL69i5vL"
 }
