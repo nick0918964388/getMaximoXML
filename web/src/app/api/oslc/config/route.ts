@@ -7,17 +7,31 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { readOslcConfig, saveOslcConfig, deleteOslcConfig } from '@/lib/oslc/config-reader';
+import { readConfig as readMasConfig } from '@/lib/mas/config-reader';
 import { encrypt, isEncrypted, hasEncryptionKey } from '@/lib/mas/crypto';
 import type { OslcConfig } from '@/lib/oslc/types';
 
 export async function GET(): Promise<NextResponse> {
   try {
     const config = await readOslcConfig();
+
+    // If OSLC has no baseUrl, try to fill from MAS config
+    let baseUrl = config?.baseUrl || '';
+    let baseUrlSource: 'oslc' | 'mas' | null = config?.baseUrl ? 'oslc' : null;
+    if (!baseUrl) {
+      const masConfig = await readMasConfig();
+      if (masConfig?.maximoBaseUrl) {
+        baseUrl = masConfig.maximoBaseUrl;
+        baseUrlSource = 'mas';
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: config
         ? {
-            baseUrl: config.baseUrl,
+            baseUrl,
+            baseUrlSource,
             authMethod: config.authMethod,
             hasApiKey: !!config.encryptedApiKey,
             hasCredentials: !!(config.encryptedUsername && config.encryptedPassword),
@@ -38,14 +52,14 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { baseUrl, authMethod, apiKey, username, password } = body;
 
-    if (!baseUrl || !authMethod) {
+    if (!authMethod) {
       return NextResponse.json(
-        { success: false, error: 'baseUrl and authMethod are required' },
+        { success: false, error: 'authMethod is required' },
         { status: 400 }
       );
     }
 
-    const config: OslcConfig = { baseUrl, authMethod };
+    const config: OslcConfig = { baseUrl: baseUrl || '', authMethod };
 
     if (authMethod === 'apikey') {
       if (!apiKey) {

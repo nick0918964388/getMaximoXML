@@ -31,6 +31,8 @@ export interface MasConfig {
   encryptedUsername?: string;
   /** AES-256-GCM encrypted OCP password (for auto re-auth) */
   encryptedPassword?: string;
+  /** Maximo base URL for OSLC integration, e.g., https://maximo.example.com */
+  maximoBaseUrl?: string;
 }
 
 /**
@@ -95,6 +97,14 @@ export const MasConfigInputSchema = z.object({
     .refine((path) => path.startsWith('/'), {
       message: 'Path must be absolute',
     }),
+  maximoBaseUrl: z
+    .string()
+    .url({ message: 'Invalid Maximo base URL' })
+    .refine((url) => url.startsWith('https://'), {
+      message: 'Maximo base URL must use HTTPS',
+    })
+    .optional()
+    .or(z.literal('')),
 });
 
 export type MasConfigInput = z.infer<typeof MasConfigInputSchema>;

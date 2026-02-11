@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockReadFile, mockWriteFile, mockMkdir } = vi.hoisted(() => ({
+const { mockReadFile, mockWriteFile, mockMkdir, mockMasReadConfig } = vi.hoisted(() => ({
   mockReadFile: vi.fn(),
   mockWriteFile: vi.fn(),
   mockMkdir: vi.fn(),
+  mockMasReadConfig: vi.fn(),
 }));
 
 // Mock fs — share the same fn refs between default.promises and promises
@@ -21,6 +22,11 @@ vi.mock('fs', () => {
 vi.mock('@/lib/mas/crypto', () => ({
   decrypt: vi.fn((val: string) => `decrypted-${val}`),
   encrypt: vi.fn((val: string) => `encrypted-${val}`),
+}));
+
+// Mock MAS config-reader
+vi.mock('@/lib/mas/config-reader', () => ({
+  readConfig: mockMasReadConfig,
 }));
 
 import { readOslcConfig, saveOslcConfig, getAuthenticatedOslcClient } from './config-reader';
@@ -70,6 +76,7 @@ describe('saveOslcConfig', () => {
 describe('getAuthenticatedOslcClient', () => {
   beforeEach(() => {
     mockReadFile.mockReset();
+    mockMasReadConfig.mockReset();
   });
 
   it('should throw when no config exists', async () => {
@@ -126,5 +133,67 @@ describe('getAuthenticatedOslcClient', () => {
     );
 
     await expect(getAuthenticatedOslcClient()).rejects.toThrow('No username/password configured');
+  });
+
+  it('should fallback to MAS config maximoBaseUrl when OSLC has no baseUrl', async () => {
+    // OSLC config has auth but no baseUrl
+    mockReadFile.mockResolvedValueOnce(
+      JSON.stringify({
+        baseUrl: '',
+        authMethod: 'apikey',
+        encryptedApiKey: 'enc-key',
+      })
+    );
+    mockMasReadConfig.mockResolvedValueOnce({
+      ocpClusterUrl: 'https://api.ocp.test:6443',
+      namespace: 'mas-inst1-manage',
+      encryptedToken: 'tok',
+      podPrefix: 'mas-masw-manage-maxinst-',
+      dbcTargetPath: '/opt/IBM/SMP/maximo/tools/maximo/en/script',
+      maximoBaseUrl: 'https://maximo.mas-fallback.com',
+    });
+
+    const { client, config } = await getAuthenticatedOslcClient();
+    expect(client).toBeDefined();
+    // The resolved baseUrl should be from MAS config
+    expect(config.baseUrl).toBe('https://maximo.mas-fallback.com');
+  });
+
+  it('should use OSLC baseUrl when both OSLC and MAS have baseUrl', async () => {
+    mockReadFile.mockResolvedValueOnce(
+      JSON.stringify({
+        baseUrl: 'https://maximo.oslc-own.com',
+        authMethod: 'apikey',
+        encryptedApiKey: 'enc-key',
+      })
+    );
+    // MAS config should NOT be read when OSLC has its own baseUrl
+    mockMasReadConfig.mockResolvedValueOnce({
+      maximoBaseUrl: 'https://maximo.mas-fallback.com',
+    });
+
+    const { config } = await getAuthenticatedOslcClient();
+    expect(config.baseUrl).toBe('https://maximo.oslc-own.com');
+    expect(mockMasReadConfig).not.toHaveBeenCalled();
+  });
+
+  it('should throw when neither OSLC nor MAS has baseUrl', async () => {
+    mockReadFile.mockResolvedValueOnce(
+      JSON.stringify({
+        baseUrl: '',
+        authMethod: 'apikey',
+        encryptedApiKey: 'enc-key',
+      })
+    );
+    mockMasReadConfig.mockResolvedValueOnce({
+      ocpClusterUrl: 'https://api.ocp.test:6443',
+      namespace: 'ns',
+      encryptedToken: 'tok',
+      podPrefix: 'p-',
+      dbcTargetPath: '/path',
+      // no maximoBaseUrl
+    });
+
+    await expect(getAuthenticatedOslcClient()).rejects.toThrow('No Maximo base URL configured');
   });
 });

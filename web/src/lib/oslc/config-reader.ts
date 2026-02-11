@@ -3,6 +3,8 @@
  *
  * Manages OSLC connection config stored at `.oslc-config/config.json`.
  * Follows same pattern as `web/src/lib/mas/config-reader.ts`.
+ *
+ * Falls back to MAS config's `maximoBaseUrl` when OSLC has no `baseUrl`.
  */
 
 import { promises as fs } from 'fs';
@@ -10,6 +12,7 @@ import path from 'path';
 import type { OslcConfig } from './types';
 import { decrypt } from '@/lib/mas/crypto';
 import { OslcClient } from './oslc-client';
+import { readConfig as readMasConfig } from '@/lib/mas/config-reader';
 
 const CONFIG_DIR = path.join(process.cwd(), '.oslc-config');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -42,8 +45,29 @@ export async function deleteOslcConfig(): Promise<void> {
 }
 
 /**
+ * Resolve the Maximo base URL. Prefers OSLC config's own baseUrl,
+ * falls back to MAS config's maximoBaseUrl.
+ */
+async function resolveBaseUrl(oslcConfig: OslcConfig): Promise<string> {
+  if (oslcConfig.baseUrl) {
+    return oslcConfig.baseUrl;
+  }
+
+  // Fallback to MAS config
+  const masConfig = await readMasConfig();
+  if (masConfig?.maximoBaseUrl) {
+    return masConfig.maximoBaseUrl;
+  }
+
+  throw new Error(
+    'No Maximo base URL configured. Set it in OSLC config or MAS config.'
+  );
+}
+
+/**
  * Create an authenticated OSLC client from stored config.
  * Decrypts credentials before creating the client.
+ * Falls back to MAS config's maximoBaseUrl when OSLC has no baseUrl.
  */
 export async function getAuthenticatedOslcClient(): Promise<{
   client: OslcClient;
@@ -54,6 +78,9 @@ export async function getAuthenticatedOslcClient(): Promise<{
     throw new Error('OSLC configuration not found. Please configure the connection first.');
   }
 
+  const baseUrl = await resolveBaseUrl(config);
+  const resolvedConfig = { ...config, baseUrl };
+
   if (config.authMethod === 'apikey') {
     if (!config.encryptedApiKey) {
       throw new Error('No API key configured.');
@@ -61,11 +88,11 @@ export async function getAuthenticatedOslcClient(): Promise<{
     const apiKey = decrypt(config.encryptedApiKey);
     return {
       client: new OslcClient({
-        baseUrl: config.baseUrl,
+        baseUrl,
         authMethod: 'apikey',
         apiKey,
       }),
-      config,
+      config: resolvedConfig,
     };
   }
 
@@ -77,11 +104,11 @@ export async function getAuthenticatedOslcClient(): Promise<{
   const password = decrypt(config.encryptedPassword);
   return {
     client: new OslcClient({
-      baseUrl: config.baseUrl,
+      baseUrl,
       authMethod: 'basic',
       username,
       password,
     }),
-    config,
+    config: resolvedConfig,
   };
 }

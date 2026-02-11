@@ -26,6 +26,7 @@ const LoginRequestSchema = z.object({
   namespace: z.string().optional(),
   podPrefix: z.string().optional(),
   dbcTargetPath: z.string().optional(),
+  maximoBaseUrl: z.string().optional(),
 });
 
 /**
@@ -131,6 +132,7 @@ export async function POST(
       encryptedToken,
       encryptedUsername: encrypt(username),
       encryptedPassword: encrypt(password),
+      ...(input.maximoBaseUrl ? { maximoBaseUrl: input.maximoBaseUrl } : {}),
     };
 
     await writeConfig(config);

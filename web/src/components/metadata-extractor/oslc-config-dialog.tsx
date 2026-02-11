@@ -29,6 +29,7 @@ export function OslcConfigDialog({ open, onOpenChange, onConfigSaved }: OslcConf
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [baseUrlSource, setBaseUrlSource] = useState<'oslc' | 'mas' | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -38,6 +39,7 @@ export function OslcConfigDialog({ open, onOpenChange, onConfigSaved }: OslcConf
           if (data.success && data.data) {
             setBaseUrl(data.data.baseUrl || '');
             setAuthMethod(data.data.authMethod || 'apikey');
+            setBaseUrlSource(data.data.baseUrlSource || null);
           }
         })
         .catch(() => {});
@@ -108,8 +110,11 @@ export function OslcConfigDialog({ open, onOpenChange, onConfigSaved }: OslcConf
               id="oslc-url"
               placeholder="https://maximo.example.com"
               value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
+              onChange={(e) => { setBaseUrl(e.target.value); setBaseUrlSource('oslc'); }}
             />
+            {baseUrlSource === 'mas' && (
+              <p className="text-xs text-muted-foreground">從 MAS 設定讀取</p>
+            )}
           </div>
 
           <div className="space-y-2">

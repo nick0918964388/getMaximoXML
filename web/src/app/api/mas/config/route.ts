@@ -74,6 +74,7 @@ export async function GET(): Promise<NextResponse<MasApiResponse<ConfigResponse>
       namespace: config?.namespace || envConfig.namespace,
       podPrefix: config?.podPrefix || envConfig.podPrefix,
       dbcTargetPath: config?.dbcTargetPath || envConfig.dbcTargetPath,
+      maximoBaseUrl: config?.maximoBaseUrl || '',
       // Indicate if token is configured without exposing it
       encryptedToken: config?.encryptedToken ? '***configured***' : '',
       // Additional metadata for UI
@@ -132,6 +133,7 @@ export async function PUT(
       podPrefix: input.podPrefix,
       dbcTargetPath: input.dbcTargetPath,
       encryptedToken,
+      ...(input.maximoBaseUrl ? { maximoBaseUrl: input.maximoBaseUrl } : {}),
     };
 
     await writeConfig(config);

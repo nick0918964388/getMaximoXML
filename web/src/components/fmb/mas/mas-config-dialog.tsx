@@ -45,6 +45,7 @@ interface FormData {
   password: string;
   podPrefix: string;
   dbcTargetPath: string;
+  maximoBaseUrl: string;
 }
 
 interface FormErrors {
@@ -55,6 +56,7 @@ interface FormErrors {
   password?: string;
   podPrefix?: string;
   dbcTargetPath?: string;
+  maximoBaseUrl?: string;
 }
 
 const DEFAULT_POD_PREFIX = 'mas-masw-manage-maxinst-';
@@ -76,6 +78,7 @@ export function MasConfigDialog({
     password: '',
     podPrefix: defaultPodPrefix,
     dbcTargetPath: DEFAULT_DBC_PATH,
+    maximoBaseUrl: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +101,7 @@ export function MasConfigDialog({
         namespace: string;
         podPrefix: string;
         dbcTargetPath: string;
+        maximoBaseUrl?: string;
         encryptedToken: string;
         hasEncryptionKey?: boolean;
         hasEnvCredentials?: boolean;
@@ -113,6 +117,7 @@ export function MasConfigDialog({
             ? defaultPodPrefix
             : (data.data!.podPrefix || defaultPodPrefix),
           dbcTargetPath: data.data!.dbcTargetPath || DEFAULT_DBC_PATH,
+          maximoBaseUrl: data.data!.maximoBaseUrl || '',
         }));
         setHasExistingToken(data.data.encryptedToken === '***configured***');
         setHasEnvCredentials(data.data.hasEnvCredentials ?? false);
@@ -197,6 +202,7 @@ export function MasConfigDialog({
           namespace: formData.namespace,
           podPrefix: formData.podPrefix,
           dbcTargetPath: formData.dbcTargetPath,
+          maximoBaseUrl: formData.maximoBaseUrl,
         };
 
         // If env credentials are configured, we can use empty username/password
@@ -244,6 +250,7 @@ export function MasConfigDialog({
             token: formData.token,
             podPrefix: formData.podPrefix,
             dbcTargetPath: formData.dbcTargetPath,
+            maximoBaseUrl: formData.maximoBaseUrl,
           }),
         });
 
@@ -335,6 +342,24 @@ export function MasConfigDialog({
               />
               {errors.ocpClusterUrl && (
                 <p className="text-sm text-destructive">{errors.ocpClusterUrl}</p>
+              )}
+            </div>
+
+            {/* Maximo Base URL */}
+            <div className="grid gap-2">
+              <Label htmlFor="maximoBaseUrl">Maximo Base URL</Label>
+              <Input
+                id="maximoBaseUrl"
+                placeholder="https://maximo.example.com"
+                value={formData.maximoBaseUrl}
+                onChange={handleInputChange('maximoBaseUrl')}
+                className={errors.maximoBaseUrl ? 'border-destructive' : ''}
+              />
+              <p className="text-xs text-muted-foreground">
+                用於 OSLC Metadata Extractor（選填）
+              </p>
+              {errors.maximoBaseUrl && (
+                <p className="text-sm text-destructive">{errors.maximoBaseUrl}</p>
               )}
             </div>
 
