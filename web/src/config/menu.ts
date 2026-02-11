@@ -1,4 +1,4 @@
-import { LucideIcon, FileCode, FileSearch, Database, Server } from 'lucide-react';
+import { LucideIcon, FileCode, FileSearch, Database, Server, Download } from 'lucide-react';
 
 /**
  * Tool configuration interface
@@ -75,6 +75,14 @@ export const menuConfig: MenuConfig = {
       description: '監控與管理 MAS 環境的 Pod 和部署',
       icon: Server,
       path: '/tools/mas-management',
+      enabled: true,
+    },
+    {
+      id: 'metadata-extractor',
+      name: 'Metadata 擷取器',
+      description: '從 MAS 擷取物件定義並轉換為 DBC',
+      icon: Download,
+      path: '/tools/metadata-extractor',
       enabled: true,
     },
   ],

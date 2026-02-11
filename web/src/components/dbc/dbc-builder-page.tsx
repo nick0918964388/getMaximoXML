@@ -138,6 +138,25 @@ export function DbcBuilderPage() {
     });
   }, [user]);
 
+  // Import operations from Metadata Extractor via sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem('dbc-import-operations');
+    if (!raw) return;
+    sessionStorage.removeItem('dbc-import-operations');
+    try {
+      const operations = JSON.parse(raw) as DbcOperation[];
+      if (Array.isArray(operations) && operations.length > 0) {
+        const newState: DbcBuilderState = {
+          script: { author: 'metadata-extractor', scriptname: 'extracted_metadata', description: 'Extracted from MAS OSLC' },
+          checks: [],
+          operations: operations.map((op) => ({ id: nextId(), operation: op })),
+          selectedId: null,
+        };
+        dispatch({ type: 'LOAD', state: newState });
+      }
+    } catch { /* ignore invalid data */ }
+  }, []);
+
   // Autosave: localStorage (sync) + Supabase (async)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
