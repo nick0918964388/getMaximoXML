@@ -30,11 +30,12 @@ export function ExtractionPreview({
 
   if (!result) return null;
 
-  const xml = buildDbcScript(
-    { author: 'metadata-extractor', scriptname: 'extracted_metadata', description: 'Extracted from MAS OSLC' },
-    [],
-    result.operations
-  );
+  const xml = buildDbcScript({
+    script: { author: 'metadata-extractor', scriptname: 'extracted_metadata', description: 'Extracted from MAS OSLC' },
+    checks: [],
+    operations: result.operations.map((op, i) => ({ id: `ext-${i}`, operation: op })),
+    selectedId: null,
+  });
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(xml);
