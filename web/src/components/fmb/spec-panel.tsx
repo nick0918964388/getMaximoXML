@@ -12,6 +12,8 @@ import { generateFormSpec, generateMarkdownSpec, type FormSpec } from '@/lib/fmb
 import { downloadWordDocument } from '@/lib/fmb/word-generator';
 import type { TriggerSpec } from '@/lib/fmb/trigger-types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ErDiagramSection } from './er-diagram-section';
+import { generateErDiagramImage } from '@/lib/fmb/er-diagram-export';
 
 interface SpecPanelProps {
   module: FmbModule;
@@ -40,7 +42,10 @@ export function SpecPanel({ module }: SpecPanelProps) {
 
   const handleDownloadWord = async () => {
     try {
-      await downloadWordDocument(spec, spec.formName);
+      // Capture ER Diagram image from the preview panel
+      const erContainer = document.querySelector('.er-diagram-container') as HTMLElement | null;
+      const erImage = await generateErDiagramImage(erContainer);
+      await downloadWordDocument(spec, spec.formName, { erDiagramImage: erImage });
     } catch (error) {
       console.error('Word generation error:', error);
       // Could add toast notification here if needed
@@ -238,6 +243,9 @@ function SpecPreview({ spec }: { spec: FormSpec }) {
           </div>
         </div>
       )}
+
+      {/* ER Diagram 實體關聯圖 */}
+      <ErDiagramSection spec={spec} />
 
       {/* LOV 與資料來源 (整合顯示) */}
       {spec.lovs.length > 0 && (

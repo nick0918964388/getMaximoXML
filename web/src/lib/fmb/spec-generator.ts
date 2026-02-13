@@ -9,6 +9,8 @@
 import type { FmbModule, FmbItem, FmbBlock } from './types';
 import type { TriggerSectionSpec } from './trigger-types';
 import { analyzeTriggers } from './trigger-analyzer';
+import { extractErDiagram } from './er-diagram-extractor';
+import { toMermaidErDiagram } from './er-diagram-mermaid';
 
 export interface TabPageSpec {
   /** 頁籤名稱 */
@@ -538,6 +540,21 @@ export function generateMarkdownSpec(spec: FormSpec): string {
     for (const btn of spec.buttons) {
       lines.push(`| ${btn.name} | ${btn.label} | ${btn.description || '-'} |`);
     }
+    lines.push('');
+  }
+
+  // ER Diagram (實體關聯圖)
+  lines.push('## ER Diagram 實體關聯圖');
+  lines.push('');
+  const erData = extractErDiagram(spec);
+  if (erData.entities.length > 0) {
+    const mermaid = toMermaidErDiagram(erData);
+    lines.push('```mermaid');
+    lines.push(mermaid);
+    lines.push('```');
+    lines.push('');
+  } else {
+    lines.push('> 無可繪製的實體資料');
     lines.push('');
   }
 

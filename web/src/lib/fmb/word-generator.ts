@@ -21,6 +21,7 @@ import {
 } from 'docx';
 import type { FormSpec, BlockSpec, FieldSpec, LovSpec, ButtonSpec } from './spec-generator';
 import type { TriggerSectionSpec, TriggerSpec } from './trigger-types';
+import { generateErDiagramWordSection } from './er-diagram-word';
 
 /**
  * Word document generation options
@@ -34,6 +35,8 @@ export interface WordDocumentOptions {
   includeTriggerDetails?: boolean;
   /** Include SQL code */
   includeSqlCode?: boolean;
+  /** ER Diagram image data (PNG ArrayBuffer) */
+  erDiagramImage?: { data: ArrayBuffer; width: number; height: number } | null;
 }
 
 /**
@@ -114,6 +117,16 @@ export async function generateWordDocument(
   if (spec.buttons.length > 0) {
     children.push(...generateButtonsSection(spec.buttons, styleConfig));
   }
+
+  // ER Diagram
+  const erImage = options.erDiagramImage;
+  children.push(
+    ...generateErDiagramWordSection(
+      erImage?.data ?? null,
+      erImage?.width ?? 0,
+      erImage?.height ?? 0
+    )
+  );
 
   // LOVs
   if (spec.lovs.length > 0) {
